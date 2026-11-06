@@ -1,0 +1,3042 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netting tool v3</title>
+<style>
+:root{color-scheme:light}
+body{margin:0;background:#fafafa;color:#0f0f0f;
+     font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+img{max-width:100%}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<title>Reserve Netting Ladder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f6f8f8;
+  --surface:#ffffff;
+  --surface-2:#eef2f2;
+  --surface-3:#e3e9e9;
+  --ink:#0e1417;
+  --ink-2:#33454a;
+  --muted:#65787c;
+  --faint:#8fa1a4;
+  --rule:#d3dcdc;
+  --rule-strong:#b9c6c6;
+
+  --l1:#a50021;          /* Gross                 */
+  --l2:#215f9a;          /* Net before internal QS */
+  --l3:#4e95d9;          /* Net after internal QS  */
+  --l1-ink:#8c001c;
+  --l2-ink:#1b5083;
+  --l3-ink:#245d92;
+  --l1-wash:#f8e8eb;
+  --l2-wash:#e9f0f8;
+  --l3-wash:#edf4fc;
+  --l1-on:#ffffff;
+  --l2-on:#ffffff;
+  --l3-on:#0b1b2b;
+
+  --accent:#1f2a30;
+  --accent-ink:#ffffff;
+  --accent-wash:#eceff1;
+
+  --ok:#2f7d4f;
+  --warn:#b07407;
+  --bad:#af3b22;
+  --ok-wash:#e6f1e9;
+  --warn-wash:#f7efdd;
+  --bad-wash:#f7e7e2;
+
+  --shadow:0 1px 2px rgba(14,20,23,.06), 0 8px 24px -12px rgba(14,20,23,.18);
+  --radius:6px;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --sans:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --display:"Archivo","Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e1417;
+    --surface:#141d21;
+    --surface-2:#1a252a;
+    --surface-3:#223035;
+    --ink:#e6eded;
+    --ink-2:#c2d0d1;
+    --muted:#8fa1a4;
+    --faint:#6d8085;
+    --rule:#26343a;
+    --rule-strong:#37494f;
+
+    --l1:#a50021;
+    --l2:#215f9a;
+    --l3:#4e95d9;
+    --l1-ink:#e8837a;
+    --l2-ink:#7fb4e0;
+    --l3-ink:#9cc9ee;
+    --l1-wash:#2b1418;
+    --l2-wash:#132330;
+    --l3-wash:#16273a;
+    --l1-on:#ffffff;
+    --l2-on:#ffffff;
+    --l3-on:#0b1b2b;
+
+    --accent:#d5e2e4;
+    --accent-ink:#10181c;
+    --accent-wash:#1d282d;
+
+    --ok:#63b884;
+    --warn:#d9a13c;
+    --bad:#e0765b;
+    --ok-wash:#152720;
+    --warn-wash:#2a2114;
+    --bad-wash:#2a1a17;
+
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e1417;
+  --surface:#141d21;
+  --surface-2:#1a252a;
+  --surface-3:#223035;
+  --ink:#e6eded;
+  --ink-2:#c2d0d1;
+  --muted:#8fa1a4;
+  --faint:#6d8085;
+  --rule:#26343a;
+  --rule-strong:#37494f;
+
+  --l1:#a50021;
+  --l2:#215f9a;
+  --l3:#4e95d9;
+  --l1-ink:#e8837a;
+  --l2-ink:#7fb4e0;
+  --l3-ink:#9cc9ee;
+  --l1-wash:#2b1418;
+  --l2-wash:#132330;
+  --l3-wash:#16273a;
+  --l1-on:#ffffff;
+  --l2-on:#ffffff;
+  --l3-on:#0b1b2b;
+
+  --accent:#d5e2e4;
+  --accent-ink:#10181c;
+  --accent-wash:#1d282d;
+
+  --ok:#63b884;
+  --warn:#d9a13c;
+  --bad:#e0765b;
+  --ok-wash:#152720;
+  --warn-wash:#2a2114;
+  --bad-wash:#2a1a17;
+
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.eyebrow{
+  font-family:var(--display);
+  font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);
+}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- shell ---------- */
+.wrap{max-width:1500px;margin:0 auto;padding:0 20px 72px}
+
+header.top{
+  border-bottom:1px solid var(--rule);
+  background:var(--surface);
+}
+.top-in{
+  max-width:1500px;margin:0 auto;padding:16px 20px;
+  display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;
+}
+.brand h1{font-size:19px;font-weight:700}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+.btn{
+  border:1px solid var(--rule-strong);background:var(--surface);color:var(--ink);
+  padding:6px 11px;border-radius:var(--radius);font-size:12.5px;font-weight:600;
+  font-family:var(--display);
+  transition:background .12s ease,border-color .12s ease;
+}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ---------- control bar ---------- */
+.controls{
+  position:sticky;top:0;z-index:30;
+  background:color-mix(in srgb,var(--surface) 92%,transparent);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--rule);
+}
+.controls-in{
+  max-width:1500px;margin:0 auto;padding:10px 20px;
+  display:flex;gap:22px;align-items:center;flex-wrap:wrap;
+}
+.field{display:flex;flex-direction:column;gap:3px}
+.field > label{font-family:var(--display);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+select,input[type=number]{
+  background:var(--surface);border:1px solid var(--rule-strong);border-radius:var(--radius);
+  padding:5px 8px;font-size:13px;min-width:150px;
+}
+input[type=number]{min-width:88px;font-family:var(--mono)}
+.seg{display:inline-flex;border:1px solid var(--rule-strong);border-radius:var(--radius);overflow:hidden}
+.seg button{
+  border:0;background:var(--surface);padding:5px 12px;font-size:12.5px;font-weight:600;
+  font-family:var(--display);color:var(--muted);
+}
+.seg button + button{border-left:1px solid var(--rule-strong)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+/* ---------- drop / load panel ---------- */
+.loader{
+  margin:28px 0;
+  border:1.5px dashed var(--rule-strong);border-radius:10px;
+  background:var(--surface);
+  padding:34px 28px;text-align:center;
+}
+.loader.hot{border-color:var(--accent);background:var(--accent-wash)}
+.loader h2{font-size:17px;margin-bottom:6px}
+.loader p{color:var(--muted);max-width:62ch;margin:6px auto 0}
+.filelist{
+  display:flex;flex-direction:column;gap:6px;margin:18px auto 0;max-width:640px;text-align:left;
+}
+.filerow{
+  display:flex;gap:10px;align-items:center;
+  border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);
+  padding:7px 10px;font-size:12.5px;
+}
+.filerow .nm{font-weight:600;font-family:var(--display)}
+.filerow .sz{color:var(--muted);font-family:var(--mono);font-size:11.5px;margin-left:auto}
+.sheetchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{
+  font-family:var(--display);font-size:10px;font-weight:600;letter-spacing:.04em;
+  border:1px solid var(--rule-strong);border-radius:99px;padding:1px 7px;color:var(--muted);
+}
+.chip.found{border-color:var(--ok);color:var(--ok);background:var(--ok-wash)}
+.chip.missing{border-color:var(--bad);color:var(--bad);background:var(--bad-wash)}
+
+/* ---------- progress ---------- */
+.prog{margin:20px 0;display:none}
+.prog.on{display:block}
+.prog .bar{height:4px;background:var(--surface-3);border-radius:99px;overflow:hidden}
+.prog .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s ease}
+.prog .msg{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* ---------- sections ---------- */
+section.block{margin-top:34px}
+.blockhead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.blockhead h2{font-size:16px;font-weight:600}
+.blockhead .note{color:var(--muted);font-size:12.5px}
+.stepno{
+  font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.06em;
+  border:1px solid currentColor;border-radius:3px;padding:1px 6px;
+}
+.stepno.l1{color:var(--l1-ink)} .stepno.l2{color:var(--l2-ink)} .stepno.l3{color:var(--l3-ink)}
+
+details.fold{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden}
+details.fold > summary{
+  list-style:none;cursor:pointer;padding:11px 14px;
+  display:flex;align-items:center;gap:11px;
+  font-family:var(--display);font-weight:600;font-size:13.5px;
+  border-left:3px solid var(--rule-strong);
+}
+details.fold > summary::-webkit-details-marker{display:none}
+details.fold > summary::after{content:"▾";margin-left:auto;color:var(--muted);font-size:11px}
+details.fold[open] > summary::after{content:"▴"}
+details.fold > summary:hover{background:var(--surface-2)}
+details.fold.l1 > summary{border-left-color:var(--l1)}
+details.fold.l2 > summary{border-left-color:var(--l2)}
+details.fold.l3 > summary{border-left-color:var(--l3)}
+details.fold > .foldbody{border-top:1px solid var(--rule)}
+.summ-sub{margin-left:6px;color:var(--muted);font-weight:400;font-family:var(--sans);font-size:12.5px}
+
+/* ---------- tables ---------- */
+.tscroll{overflow-x:auto;background:var(--surface)}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+table.grid th,table.grid td{padding:5px 9px;white-space:nowrap;border-bottom:1px solid var(--rule)}
+table.grid thead th{
+  font-family:var(--display);font-weight:600;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.055em;color:var(--muted);
+  background:var(--surface-2);text-align:right;vertical-align:bottom;
+  position:sticky;top:0;
+}
+table.grid thead tr.band th{
+  text-align:center;letter-spacing:.1em;font-size:10px;color:var(--ink);
+  background:var(--surface-2);border-bottom:2px solid var(--rule-strong);position:static;
+}
+table.grid thead tr.band th.band-l1{color:var(--l1-on);background:var(--l1);border-bottom-color:var(--l1)}
+table.grid thead tr.band th.band-l2{color:var(--l2-on);background:var(--l2);border-bottom-color:var(--l2)}
+table.grid thead tr.band th.band-l3{color:var(--l3-on);background:var(--l3);border-bottom-color:var(--l3)}
+table.grid thead tr.band th.band-neutral{color:var(--ink);background:var(--surface-3);border-bottom-color:var(--rule-strong)}
+table.grid th.rowhead,table.grid td.rowhead{
+  text-align:left;position:sticky;left:0;background:var(--surface-2);z-index:2;
+  font-family:var(--display);font-weight:600;font-size:11.5px;letter-spacing:.02em;
+}
+table.grid thead th.rowhead{z-index:4}
+table.grid td{
+  text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:12px;color:var(--ink-2);
+}
+table.grid tbody tr:hover td{background:var(--surface-2)}
+table.grid tbody tr:hover td.rowhead{background:var(--surface-3)}
+table.grid tr.total td,table.grid tr.total td.rowhead{
+  font-weight:600;color:var(--ink);background:var(--surface-3);
+  border-top:1.5px solid var(--rule-strong);border-bottom:0;
+}
+table.grid td.ratio{color:var(--ink);font-weight:500}
+table.grid td.zero,.z{color:var(--faint)}
+table.grid td.neg,table.grid tr.total td.neg{color:var(--bad)}
+td.sep-l1{border-left:2px solid var(--l1)}
+td.sep-l2{border-left:2px solid var(--l2)}
+td.sep-l3{border-left:2px solid var(--l3)}
+th.sep-l1{border-left:2px solid var(--l1)}
+th.sep-l2{border-left:2px solid var(--l2)}
+th.sep-l3{border-left:2px solid var(--l3)}
+td.sep-neutral,th.sep-neutral{border-left:2px solid var(--rule-strong)}
+
+/* ---------- checks ---------- */
+.checks{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px solid var(--rule);background:var(--surface-2)}
+.check{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;border:1px solid var(--rule-strong);border-radius:99px;padding:2px 9px;
+  background:var(--surface);
+}
+.check b{font-family:var(--display);font-weight:600}
+.check span{font-family:var(--mono);font-size:11px}
+.check.pass{border-color:var(--ok);color:var(--ok);background:var(--ok-wash)}
+.check.fail{border-color:var(--bad);color:var(--bad);background:var(--bad-wash)}
+
+/* ---------- params ---------- */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;padding:14px}
+.pcard{border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);padding:11px 12px}
+.pcard h4{font-size:12px;font-weight:600;margin-bottom:7px}
+.pcard .hint{color:var(--muted);font-size:11.5px;margin:0 0 8px}
+table.mini{border-collapse:collapse;width:100%;font-size:11.5px}
+table.mini th,table.mini td{padding:2px 6px;text-align:right;border-bottom:1px solid var(--rule)}
+table.mini th:first-child,table.mini td:first-child{text-align:left;font-family:var(--display);font-weight:600}
+table.mini td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+table.mini thead th{font-family:var(--display);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+.banner{
+  border:1px solid var(--rule-strong);border-left-width:3px;border-radius:var(--radius);
+  padding:10px 13px;margin:14px 0;font-size:12.5px;background:var(--surface);
+}
+.banner.warn{border-left-color:var(--warn);background:var(--warn-wash)}
+.banner.bad{border-left-color:var(--bad);background:var(--bad-wash)}
+.banner.info{border-left-color:var(--accent);background:var(--accent-wash)}
+.banner ul{margin:6px 0 0;padding-left:18px}
+.banner code{font-family:var(--mono);font-size:11.5px}
+
+footer.foot{max-width:1500px;margin:44px auto 0;padding:16px 20px 0;border-top:1px solid var(--rule);color:var(--muted);font-size:12px}
+.hidden{display:none!important}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend span{font-size:11.5px;color:var(--muted);font-family:var(--display);font-weight:600;letter-spacing:.03em}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>Reserve Netting Ladder</h1>
+      <p>Gross &rarr; net of external retro &rarr; net of internal quota share, by underwriting year</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="btnTheme" title="Switch light / dark">Theme</button>
+      <button class="btn" id="btnReload">Load other files</button>
+      <button class="btn" id="btnPrior">Compare period&hellip;</button>
+      <input type="file" id="filePrior" accept=".xlsx,.xlsm" class="hidden">
+      <button class="btn" id="btnExportAll" disabled>Export all combinations</button>
+      <button class="btn primary" id="btnExport" disabled>Export this view</button>
+    </div>
+  </div>
+</header>
+
+<div class="controls hidden" id="controls">
+  <div class="controls-in">
+    <div class="field">
+      <label for="selLob">Line of business</label>
+      <select id="selLob"></select>
+    </div>
+    <div class="field">
+      <label for="selType">Basis</label>
+      <div class="seg" id="segType">
+        <button data-v="MBE" aria-pressed="true">MBE</button>
+        <button data-v="Stat" aria-pressed="false">Stat</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="segBranch">Branch</label>
+      <div class="seg" id="segBranch">
+        <button data-v="ALL" aria-pressed="true">Total</button>
+        <button data-v="UK" aria-pressed="false">UK</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="selUnit">Units</label>
+      <select id="selUnit">
+        <option value="1000000">millions</option>
+        <option value="1000">thousands</option>
+        <option value="1">full</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="inpCutoff">Collapse UWY up to</label>
+      <input type="number" id="inpCutoff" step="1">
+    </div>
+  </div>
+</div>
+
+<div id="priorChip" class="priorbar hidden"></div>
+
+<div class="wrap">
+  <div class="loader" id="loader">
+    <h2>Drop the netting input workbooks here</h2>
+    <p>
+      Everything is read and calculated inside this page &mdash; no file is uploaded anywhere.
+      Drop one merged workbook or several files; sheets are located by name, so the existing
+      <b>Input_Netting_v2.xlsx</b> works unchanged.
+    </p>
+    <p style="margin-top:14px">
+      <button class="btn primary" id="btnPick">Choose files&hellip;</button>
+      <input type="file" id="filePick" multiple accept=".xlsx,.xlsm" class="hidden">
+    </p>
+    <div class="filelist" id="filelist"></div>
+  </div>
+
+  <div class="prog" id="prog">
+    <div class="bar"><i id="progBar"></i></div>
+    <div class="msg" id="progMsg">Starting&hellip;</div>
+  </div>
+
+  <div id="fatal"></div>
+  <div id="output" class="hidden"></div>
+</div>
+
+<footer class="foot">
+  <div>
+    Re-implementation of <b>Input_Netting_v2.xlsx</b>. Reproduces the per-policy netting columns, the
+    XoL premium allocation, unsigned premiums and unsigned IBNR, and both summary sheets.
+    Checks below each table mirror the workbook&rsquo;s own reconciliation rows.
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--l1)"></i>Gross</span>
+    <span><i style="background:var(--l2)"></i>Net before internal QS</span>
+    <span><i style="background:var(--l3)"></i>Net after internal QS</span>
+  </div>
+</footer>
+<style>
+/* ---------- previous-period comparison ---------- */
+.priorbar{
+  max-width:1500px;margin:0 auto;padding:8px 20px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-size:12.5px;border-bottom:1px solid var(--rule);background:var(--surface-2);
+}
+.priorbar .priorlabel{
+  font-family:var(--display);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+}
+.priorbar .dim{color:var(--muted)}
+.priorbar .warnbit{
+  color:var(--warn);background:var(--warn-wash);border:1px solid var(--warn);
+  border-radius:99px;padding:1px 8px;font-size:11.5px;
+}
+.btn.tiny{padding:2px 8px;font-size:11.5px}
+
+table.grid td.delta{font-weight:600}
+table.grid td.delta.up,table.grid tr.total td.delta.up{color:var(--bad)}
+table.grid td.delta.down,table.grid tr.total td.delta.down{color:var(--ok)}
+table.grid td.delta.flat,table.grid tr.total td.delta.flat{color:var(--faint);font-weight:400}
+</style>
+
+<script>
+"use strict";
+/* ==========================================================================
+   1. raw DEFLATE  (canonical Huffman decoder, puff-style)
+   ========================================================================== */
+function inflateRaw(src){
+  let out = new Uint8Array(Math.max(4096, src.length * 5));
+  let olen = 0;
+  function ensure(n){
+    if(olen + n <= out.length) return;
+    let cap = out.length;
+    while(cap < olen + n) cap = Math.ceil(cap * 1.7);
+    const t = new Uint8Array(cap); t.set(out.subarray(0, olen)); out = t;
+  }
+  let pos = 0, buf = 0, cnt = 0;
+  function bits(n){
+    while(cnt < n){ buf |= (pos < src.length ? src[pos++] : 0) << cnt; cnt += 8; }
+    const v = buf & ((1 << n) - 1);
+    buf >>>= n; cnt -= n;
+    return v;
+  }
+  function huff(lengths, n){
+    const count = new Int32Array(16);
+    for(let i = 0; i < n; i++) count[lengths[i]]++;
+    count[0] = 0;
+    const offs = new Int32Array(16);
+    for(let i = 1; i < 16; i++) offs[i] = offs[i-1] + count[i-1];
+    const symbol = new Int32Array(n);
+    for(let i = 0; i < n; i++) if(lengths[i]) symbol[offs[lengths[i]]++] = i;
+    return { count: count, symbol: symbol };
+  }
+  function decode(h){
+    let code = 0, first = 0, index = 0;
+    for(let len = 1; len < 16; len++){
+      code |= bits(1);
+      const c = h.count[len];
+      if(code - first < c) return h.symbol[index + (code - first)];
+      index += c; first = (first + c) << 1; code <<= 1;
+    }
+    throw new Error("corrupt deflate stream (bad Huffman code)");
+  }
+  const LB=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+  const LE=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+  const DB=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+  const DE=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+  const ORD=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+  let fL = null, fD = null;
+  function fixedTables(){
+    if(fL) return;
+    const l = new Uint8Array(288);
+    for(let i=0;i<144;i++) l[i]=8;
+    for(let i=144;i<256;i++) l[i]=9;
+    for(let i=256;i<280;i++) l[i]=7;
+    for(let i=280;i<288;i++) l[i]=8;
+    fL = huff(l, 288);
+    const d = new Uint8Array(30); d.fill(5);
+    fD = huff(d, 30);
+  }
+  function codes(L, D){
+    for(;;){
+      const sym = decode(L);
+      if(sym < 256){ ensure(1); out[olen++] = sym; }
+      else if(sym === 256) return;
+      else {
+        const s = sym - 257;
+        if(s >= 29) throw new Error("corrupt deflate stream (bad length code)");
+        const len = LB[s] + bits(LE[s]);
+        const ds = decode(D);
+        const dist = DB[ds] + bits(DE[ds]);
+        if(dist > olen) throw new Error("corrupt deflate stream (distance too far back)");
+        ensure(len);
+        let from = olen - dist;
+        for(let i = 0; i < len; i++) out[olen++] = out[from++];
+      }
+    }
+  }
+  for(;;){
+    const last = bits(1), type = bits(2);
+    if(type === 0){
+      buf = 0; cnt = 0;
+      const len = src[pos] | (src[pos+1] << 8);
+      pos += 4;
+      ensure(len);
+      out.set(src.subarray(pos, pos + len), olen);
+      olen += len; pos += len;
+    } else if(type === 1){
+      fixedTables(); codes(fL, fD);
+    } else if(type === 2){
+      const nlen = bits(5) + 257, ndist = bits(5) + 1, ncode = bits(4) + 4;
+      const clen = new Uint8Array(19);
+      for(let i = 0; i < ncode; i++) clen[ORD[i]] = bits(3);
+      const cl = huff(clen, 19);
+      const all = new Uint8Array(nlen + ndist);
+      let i = 0;
+      while(i < nlen + ndist){
+        const sym = decode(cl);
+        if(sym < 16) all[i++] = sym;
+        else if(sym === 16){ const p = all[i-1]; let r = 3 + bits(2); while(r--) all[i++] = p; }
+        else if(sym === 17){ let r = 3 + bits(3); while(r--) all[i++] = 0; }
+        else { let r = 11 + bits(7); while(r--) all[i++] = 0; }
+      }
+      const L = huff(all.subarray(0, nlen), nlen);
+      const D = huff(all.subarray(nlen), ndist);
+      codes(L, D);
+    } else throw new Error("corrupt deflate stream (reserved block type)");
+    if(last) break;
+  }
+  return out.subarray(0, olen);
+}
+
+/* ==========================================================================
+   2. ZIP container
+   ========================================================================== */
+function openZip(u8){
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let eocd = -1;
+  for(let i = u8.length - 22; i >= Math.max(0, u8.length - 66000); i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if(eocd < 0) throw new Error("Not a readable .xlsx file (no ZIP directory found).");
+  let count = dv.getUint16(eocd + 10, true);
+  let cdOff = dv.getUint32(eocd + 16, true);
+  if(cdOff === 0xffffffff || count === 0xffff){
+    const loc = eocd - 20;
+    if(loc >= 0 && dv.getUint32(loc, true) === 0x07064b50){
+      const z64 = Number(dv.getBigUint64(loc + 8, true));
+      if(dv.getUint32(z64, true) === 0x06064b50){
+        count = Number(dv.getBigUint64(z64 + 32, true));
+        cdOff = Number(dv.getBigUint64(z64 + 48, true));
+      }
+    }
+  }
+  const entries = new Map();
+  let p = cdOff;
+  for(let n = 0; n < count; n++){
+    if(dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true);
+    let csize   = dv.getUint32(p + 20, true);
+    const nlen  = dv.getUint16(p + 28, true);
+    const elen  = dv.getUint16(p + 30, true);
+    const clen  = dv.getUint16(p + 32, true);
+    let lho     = dv.getUint32(p + 42, true);
+    let name = "";
+    for(let i = 0; i < nlen; i++) name += String.fromCharCode(u8[p + 46 + i]);
+    name = name.replace(/\\/g, "/");        /* some zip writers emit Windows separators */
+    if(csize === 0xffffffff || lho === 0xffffffff){
+      let ep = p + 46 + nlen;
+      const eEnd = ep + elen;
+      while(ep + 4 <= eEnd){
+        const hid = dv.getUint16(ep, true), hsz = dv.getUint16(ep + 2, true);
+        if(hid === 0x0001){
+          let q = ep + 4;
+          q += 8;                                              // uncompressed
+          if(csize === 0xffffffff){ csize = Number(dv.getBigUint64(q, true)); }
+          q += 8;
+          if(lho === 0xffffffff){ lho = Number(dv.getBigUint64(q, true)); }
+          break;
+        }
+        ep += 4 + hsz;
+      }
+    }
+    entries.set(name, { method: method, csize: csize, lho: lho });
+    p += 46 + nlen + elen + clen;
+  }
+  function raw(name){
+    const e = entries.get(name);
+    if(!e) return null;
+    const lh = e.lho;
+    if(dv.getUint32(lh, true) !== 0x04034b50) throw new Error("Damaged ZIP entry: " + name);
+    const nlen = dv.getUint16(lh + 26, true), elen = dv.getUint16(lh + 28, true);
+    const start = lh + 30 + nlen + elen;
+    const comp = u8.subarray(start, start + e.csize);
+    if(e.method === 0) return comp;
+    if(e.method === 8) return inflateRaw(comp);
+    throw new Error("Unsupported ZIP compression method " + e.method + " in " + name);
+  }
+  return { names: Array.from(entries.keys()), raw: raw };
+}
+
+/* ==========================================================================
+   3. XLSX reader — column-selective scan
+   ========================================================================== */
+const XML_ENT = { "&lt;": "<", "&gt;": ">", "&amp;": "&", "&quot;": String.fromCharCode(34), "&apos;": String.fromCharCode(39) };
+function unesc(s){
+  if(s.indexOf("&") < 0) return s;
+  return s.replace(/&(?:lt|gt|amp|quot|apos|#x?[0-9a-fA-F]+);/g, function(m){
+    if(XML_ENT[m] !== undefined) return XML_ENT[m];
+    const hex = (m.charAt(2) === "x" || m.charAt(2) === "X");
+    const code = parseInt(m.slice(hex ? 3 : 2, -1), hex ? 16 : 10);
+    return isNaN(code) ? m : String.fromCodePoint(code);
+  });
+}
+function colToIdx(letters){
+  let n = 0;
+  for(let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+  return n - 1;
+}
+function idxToCol(i){
+  let s = "", v = i + 1;
+  while(v > 0){ const r = (v - 1) % 26; s = String.fromCharCode(65 + r) + s; v = Math.floor((v - 1) / 26); }
+  return s;
+}
+
+function openWorkbook(arrayBuffer){
+  const zip = openZip(new Uint8Array(arrayBuffer));
+  const dec = new TextDecoder("utf-8");
+  const wbBytes = zip.raw("xl/workbook.xml");
+  if(!wbBytes) throw new Error("Not an Excel workbook (xl/workbook.xml missing).");
+  const wb = dec.decode(wbBytes);
+  const relsRaw = zip.raw("xl/_rels/workbook.xml.rels");
+  const rels = relsRaw ? dec.decode(relsRaw) : "";
+
+  const relMap = new Map();
+  const relRe = /<Relationship\b[^>]*>/g;
+  let m;
+  while((m = relRe.exec(rels))){
+    const id = /Id="([^"]+)"/.exec(m[0]);
+    const tg = /Target="([^"]+)"/.exec(m[0]);
+    if(id && tg){
+      const t = tg[1].replace(/^\/?xl\//, "").replace(/^\//, "");
+      relMap.set(id[1], "xl/" + t);
+    }
+  }
+  const sheets = new Map();
+  const shRe = /<sheet\b[^>]*>/g;
+  while((m = shRe.exec(wb))){
+    const nm = /name="([^"]*)"/.exec(m[0]);
+    const rid = /r:id="([^"]+)"/.exec(m[0]);
+    if(nm && rid && relMap.has(rid[1])) sheets.set(unesc(nm[1]), relMap.get(rid[1]));
+  }
+
+  let sst = null;
+  function strings(){
+    if(sst) return sst;
+    sst = [];
+    const r = zip.raw("xl/sharedStrings.xml");
+    if(!r) return sst;
+    const xml = dec.decode(r);
+    let i = 0;
+    for(;;){
+      i = xml.indexOf("<si", i);
+      if(i < 0) break;
+      const close = xml.indexOf("</si>", i);
+      if(close < 0) break;
+      const seg = xml.slice(i, close);
+      let out = "", j = 0;
+      for(;;){
+        j = seg.indexOf("<t", j);
+        if(j < 0) break;
+        const g = seg.indexOf(">", j);
+        if(g < 0) break;
+        if(seg.charAt(g - 1) === "/"){ j = g + 1; continue; }
+        const e = seg.indexOf("</t>", g);
+        if(e < 0) break;
+        out += seg.slice(g + 1, e);
+        j = e + 4;
+      }
+      sst.push(unesc(out));
+      i = close + 5;
+    }
+    return sst;
+  }
+
+  function readSheet(sheetName, letters, startRow){
+    const path = sheets.get(sheetName);
+    if(!path) return null;
+    const rawBytes = zip.raw(path);
+    if(!rawBytes) return null;
+    const xml = dec.decode(rawBytes);
+    const ss = strings();
+    const from = startRow || 1;
+
+    const want = new Map();
+    if(letters) for(let k = 0; k < letters.length; k++) want.set(colToIdx(letters[k]), letters[k]);
+
+    const rows = [];
+    let cur = null, curRow = -1;
+
+    let i = xml.indexOf("<sheetData");
+    if(i < 0) return rows;
+    const endTag = xml.indexOf("</sheetData>", i);
+    const stop = endTag < 0 ? xml.length : endTag;
+    i = xml.indexOf(">", i) + 1;
+
+    while(i < stop){
+      i = xml.indexOf("<c ", i);
+      if(i < 0 || i >= stop) break;
+      const gt = xml.indexOf(">", i);
+      if(gt < 0) break;
+      const selfClose = (xml.charAt(gt - 1) === "/");
+      const attrs = xml.slice(i + 3, selfClose ? gt - 1 : gt);
+      let cellEnd = gt + 1, nexti = gt + 1;
+      if(!selfClose){
+        cellEnd = xml.indexOf("</c>", gt);
+        if(cellEnd < 0) break;
+        nexti = cellEnd + 4;
+      }
+      const rq = attrs.indexOf('r="');
+      if(rq < 0){ i = nexti; continue; }
+      const ref = attrs.slice(rq + 3, attrs.indexOf('"', rq + 3));
+      let ci = 0, k = 0;
+      for(; k < ref.length; k++){
+        const cc = ref.charCodeAt(k);
+        if(cc < 65 || cc > 90) break;
+        ci = ci * 26 + (cc - 64);
+      }
+      ci -= 1;
+      const rowNum = +ref.slice(k);
+      if(rowNum < from){ i = nexti; continue; }
+      const letter = want.size ? want.get(ci) : idxToCol(ci);
+      if(letter === undefined){ i = nexti; continue; }
+
+      let val = null;
+      if(!selfClose){
+        const seg = xml.slice(gt + 1, cellEnd);
+        const vi = seg.indexOf("<v");
+        if(vi >= 0){
+          const g = seg.indexOf(">", vi);
+          const e = seg.indexOf("</v>", g);
+          if(e >= 0) val = seg.slice(g + 1, e);
+        } else {
+          const ti = seg.indexOf("<t");
+          if(ti >= 0){
+            const g = seg.indexOf(">", ti);
+            const e = seg.indexOf("</t>", g);
+            if(e >= 0) val = seg.slice(g + 1, e);
+          }
+        }
+      }
+      if(val !== null && val !== ""){
+        const tq = attrs.indexOf('t="');
+        const t = tq < 0 ? "" : attrs.slice(tq + 3, attrs.indexOf('"', tq + 3));
+        let out;
+        if(t === "s") out = (ss[+val] !== undefined ? ss[+val] : "");
+        else if(t === "str" || t === "inlineStr") out = unesc(val);
+        else if(t === "b") out = (val === "1");
+        else if(t === "e") out = null;
+        else { const num = +val; out = isNaN(num) ? unesc(val) : num; }
+        if(out !== null){
+          if(rowNum !== curRow){ cur = { __row: rowNum }; rows.push(cur); curRow = rowNum; }
+          cur[letter] = out;
+        }
+      }
+      i = nexti;
+    }
+    return rows;
+  }
+
+  return { sheetNames: Array.from(sheets.keys()), readSheet: readSheet, has: function(n){ return sheets.has(n); } };
+}
+
+/* ==========================================================================
+   4. Sheet contract
+   ========================================================================== */
+const PROD_COMM_A = ["AB","AC","AD","AE","AF","AG","AH","AI","AJ","AK","AL","AM","AN","AO","AP","AQ"];
+const PROD_COMM_B = ["BA","BB","BC","BD","BE","BF"];
+const PROD_COLS = ["A","Q","R","W","AA","AZ","CO","CS","CW","CY","DQ","DR","DU","DX",
+                   "EE","EF","EH","EI","EJ","EK","EL","EM","EP","ET","FG"]
+                  .concat(PROD_COMM_A, PROD_COMM_B);
+
+const SHEET_SPEC = {
+  lobs:   { aliases:["LoBs","LoB","LOBs","Lines of business"], cols:["A","B","C"], start:2, required:true },
+  excl:   { aliases:["Exclusions","Exclusion"],                 cols:["A","B"],     start:2, required:true },
+  prod:   { aliases:["Production file","Production","Production Data","Production_file"],
+            cols:PROD_COLS, start:4, required:true },
+  abe:    { aliases:["ABE-MBE Inputs","ABE MBE Inputs","ABE-MBE","BE Inputs"],
+            cols:["A","B","C","D","E","F","L","M","N","O","P","Q","V","W","X","Y","Z","AB","AC","AD"], start:2, required:true },
+  eibnr:  { aliases:["Earned IBNR","Earned_IBNR"],
+            cols:["A","H","I","K","L","M","N","R","Y","AB","AC","AD","AE"], start:5, required:true },
+  energy: { aliases:["Energy new structure and retro","Energy new structure & retro","Retro parameters","Parameters"],
+            cols:null, start:1, required:true },
+  /* read whole: the office columns are located from the header row, not fixed letters */
+  xolp:   { aliases:["XoL Premiums","XOL Premiums","XoL Premium","XoL Input"],
+            cols:null, start:1, required:true },
+  xoluwy: { aliases:["XoL UWY","XOL UWY"], cols:null, start:1, required:false }
+};
+
+/* The LoB columns of the XoL allocation grid. Read from the LoB header of the "XoL UWY"
+   office grid when that sheet is supplied; this list is only the fallback (Q3 2026 layout). */
+const XOL_LOBS_DEFAULT = ["DCBON","DCENR","DCFIL","DCFRO","DCLIA","DCMAR","DCPRO","DCSPE",
+                          "ENCON","ENDWM","ENUPS","LIIND","LIMED","LIMLT","LISHT","PRTOT",
+                          "DBPRO","DBTRT","DBLIF","DBENR"];
+
+/* XoL Premiums names its office columns differently from the office blocks of "XoL UWY" and
+   the office column of the Production file; keys are normName()d header labels. A header
+   that already matches an office block name needs no entry here. */
+const XOL_OFFICE_ALIAS = {
+  miami:"Miami", fi:"Financial Lines", londonproperty:"Property  London",
+  bondsspain:"Madrid", bondsmilan:"Italy", bondsrome:"Italy"
+};
+/* offices the workbook leaves out of the office -> LoB allocation */
+const XOL_OFFICE_EXCLUDED = new Set(["miami","beirut","uscasualty"]);
+
+/* class label per LoB used for the retro-expense reallocation. Read from the class row above
+   "Allocation to UWY and Lux share" in XoL UWY when present; this map is the fallback. */
+const XOL_MATRIX_CLASS_DEFAULT = {
+  DCBON:"Bonds", DCFIL:"FI", DCLIA:"Liability", DCMAR:"Marine", DCPRO:"Property",
+  ENCON:"Energy", ENDWM:"Energy", ENUPS:"Energy",
+  LIIND:"Life", LIMED:"Life", LIMLT:"Life", LISHT:"Life",
+  PRTOT:"Property", DBPRO:"Dubai Property", DBTRT:"Dubai Property", DBLIF:"Life", DBENR:"Energy"
+  /* DCENR, DCFRO, DCSPE deliberately unmapped -> factor 0 from 2019 on */
+};
+
+/* per-LoB rule for the final XoL premium matrix (XoL UWY AA4:AV15) */
+const XOL_MATRIX_RULE = {
+  DCENR: { kind:"firstTwoThenZero" },
+  DCFIL: { kind:"direct" },
+  DCPRO: { kind:"dcPool", poolFrom:2020, poolTo:2020, cutoff:2020, moscow:"DCPRO" },
+  PRTOT: { kind:"direct", moscow:"PRTOT" }
+};
+
+/* Moscow Property XoL redistribution (XoL UWY AL64:AM67) — a one-off manual
+   adjustment in the workbook; defaults are the values cached in v2. */
+const MOSCOW_DEFAULT = {
+  DCPRO: { floor:146324.69229839742, 2018:171470.66929092538, 2019:179854.30129881707, 2020:0 },
+  PRTOT: { floor:464740.91486678721, 2018:477063.40353648731, 2019:468661.83201065671, 2020:0 }
+};
+
+/* ==========================================================================
+   5. small helpers
+   ========================================================================== */
+const N = function(v){ return typeof v === "number" && isFinite(v) ? v : 0; };
+const S = function(v){ return v === undefined || v === null ? "" : String(v).trim(); };
+const UP = function(v){ return S(v).toUpperCase(); };
+const div = function(a, b){ return b === 0 || !isFinite(b) ? 0 : a / b; };
+const EPOCH = Date.UTC(1899, 11, 30);
+function serialYear(n){
+  if(typeof n !== "number" || !isFinite(n) || n <= 0) return null;
+  return new Date(EPOCH + Math.round(n) * 86400000).getUTCFullYear();
+}
+function yearStartSerial(y){ return Math.round((Date.UTC(y, 0, 1) - EPOCH) / 86400000); }
+/* Excel: MAX(0, MIN(to, DATE(y+1,1,1)-1) - MAX(from, DATE(y,1,1)) + 1) / (to - from + 1) */
+function yearShare(from, to, y){
+  if(typeof from !== "number" || typeof to !== "number" || to < from) return 0;
+  const a = yearStartSerial(y), b = yearStartSerial(y + 1) - 1;
+  const lo = Math.max(from, a), hi = Math.min(to, b);
+  return Math.max(0, hi - lo + 1) / (to - from + 1);
+}
+function normName(s){ return S(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+function bump(map, key, v){ map.set(key, (map.get(key) || 0) + v); }
+
+const LOB_CODE = /^[A-Z]{5}$/;
+const colAt = function(col, n){ return idxToCol(colToIdx(col) + n); };
+
+/* every non-empty cell of a sheet, in reading order */
+function cellsOf(rows){
+  const out = [];
+  for(const r of rows) for(const k in r) if(k !== "__row" && r[k] !== null && r[k] !== undefined && r[k] !== "") out.push({ row: r.__row, col: k, v: r[k] });
+  out.sort(function(a, b){ return a.row - b.row || colToIdx(a.col) - colToIdx(b.col); });
+  return out;
+}
+
+/* The office -> LoB allocation grid of "XoL UWY": every row that carries an office name in
+   column B and a year in column C. The LoB of each share column is taken from the nearest
+   LoB-code header row above it (D5:W5, repeated over the later office blocks), so LoBs added
+   to the grid are picked up. Keys are normName(office)|year|LoB. */
+function readBlockA(rows){
+  const map = new Map(), offices = new Set();
+  let head = null, firstHead = null;
+  for(const r of rows || []){
+    if(LOB_CODE.test(S(r.D))){
+      /* the header may have empty slots (before Q3 2026 two blanks sat before DBLIF / DBENR):
+         skip blanks, stop at other text or after three blanks in a row */
+      head = [];
+      for(let c = "D", gap = 0; gap < 3; c = colAt(c, 1)){
+        const t = S(r[c]);
+        if(!t){ gap++; continue; }
+        if(!LOB_CODE.test(t)) break;
+        head.push({ col: c, lob: t }); gap = 0;
+      }
+      if(!firstHead) firstHead = head;
+      continue;
+    }
+    const off = normName(r.B), y = r.C;
+    if(!head || !off || typeof y !== "number" || y < 1990 || y > 2200) continue;
+    offices.add(off);
+    for(const h of head){
+      const v = r[h.col];
+      if(typeof v === "number") map.set(off + "|" + y + "|" + h.lob, v);
+    }
+  }
+  return { map: map, offices: offices, lobs: firstHead ? firstHead.map(function(h){ return h.lob; }) : null };
+}
+
+/* Class label per LoB for the retro-expense reallocation: the row of class names sitting
+   directly above the LoB header under "Allocation to UWY and Lux share" in XoL UWY. */
+function readXolClasses(rows){
+  const cells = cellsOf(rows || []);
+  const title = cells.find(function(c){ return normName(c.v) === "allocationtouwyandluxshare"; });
+  if(!title) return null;
+  const byRow = new Map();
+  for(const c of cells){ if(!byRow.has(c.row)) byRow.set(c.row, []); byRow.get(c.row).push(c); }
+  for(let r = title.row + 1; r <= title.row + 5; r++){
+    const codes = (byRow.get(r) || []).filter(function(c){ return LOB_CODE.test(S(c.v)); });
+    if(codes.length < 5) continue;
+    const above = new Map((byRow.get(r - 1) || []).map(function(c){ return [c.col, S(c.v)]; }));
+    const out = {};
+    for(const c of codes){ const cls = above.get(c.col); if(cls) out[S(c.v)] = cls; }
+    return { map: out, where: "row " + (r - 1) };
+  }
+  return null;
+}
+
+/* XoL Premiums: the header row is the one naming "From", "To" and "MDP". After MDP the office
+   names run twice: the treaty's split across offices, then the Lux share the workbook actually
+   allocates (W..AM in Q3 2026, U..AI before). The second run is the one used. */
+function readXolLayout(rows){
+  for(const r of rows){
+    const col = {};
+    for(const k in r){ if(k === "__row") continue; const t = normName(r[k]); if(t && !col[t]) col[t] = k; }
+    if(!col.from || !col.to || !col.mdp) continue;
+    const first = [], lux = [];
+    let c = colAt(col.mdp, 1);
+    for(; normName(r[c]) && !(first.length && normName(r[c]) === first[0]); c = colAt(c, 1)) first.push(normName(r[c]));
+    const names = new Set(first);
+    for(; names.has(normName(r[c])); c = colAt(c, 1)) lux.push({ col: c, label: S(r[c]), key: normName(r[c]) });
+    if(!lux.length) throw new Error('XoL Premiums: found the header row (row ' + r.__row + ') but not the second run of office names (the Lux-share columns) after "MDP".');
+    return { row: r.__row, name: col.retrocession || "A", from: col.from, to: col.to, mdp: col.mdp, lux: lux };
+  }
+  throw new Error('XoL Premiums: no header row with "From", "To" and "MDP" was found.');
+}
+
+/* ==========================================================================
+   6. locate the sheets across all dropped workbooks
+   ========================================================================== */
+function locateSheets(books){
+  const found = {}, report = [];
+  for(const key in SHEET_SPEC){
+    const spec = SHEET_SPEC[key];
+    let hit = null;
+    for(let b = 0; b < books.length && !hit; b++){
+      for(let a = 0; a < spec.aliases.length && !hit; a++){
+        const target = normName(spec.aliases[a]);
+        for(const nm of books[b].wb.sheetNames){
+          if(normName(nm) === target){ hit = { book: b, sheet: nm }; break; }
+        }
+      }
+    }
+    found[key] = hit;
+    report.push({ key: key, want: spec.aliases[0], hit: hit, required: spec.required });
+  }
+  return { found: found, report: report };
+}
+
+/* ==========================================================================
+   7. parameters from "Energy new structure and retro"
+   Every block is found by its label, not by a fixed cell, so rows inserted above it
+   (e.g. "Dubai Property" in the retro table in Q3 2026) do not shift what is read.
+   Where each block was found is kept in `layout` and shown under Input data.
+   ========================================================================== */
+const PARAM_SHEET = "Energy new structure and retro";
+function readParams(rows){
+  const cell = {};
+  for(const r of rows) for(const k in r) if(k !== "__row") cell[k + r.__row] = r[k];
+  const g = function(ref){ return cell[ref]; };
+  const cells = cellsOf(rows);
+  const find = function(test){ return cells.find(function(c){ return typeof c.v === "string" && test(c); }) || null; };
+  const sameRow = function(c, name){ return cells.find(function(x){ return x.row === c.row && normName(x.v) === name; }) || null; };
+  const missing = function(what){ return new Error(PARAM_SHEET + ": could not find " + what + ". Check the label has not been renamed."); };
+  const layout = [];
+
+  /* block 2 — retro-expense reallocation: the "LOB" header followed by years, classes below it */
+  const rh = find(function(c){ return normName(c.v) === "lob" && typeof g(colAt(c.col, 1) + c.row) === "number"; });
+  if(!rh) throw missing('the retro-expense table (a "LOB" header followed by years)');
+  const retroYears = [], retroCols = [];
+  for(let c = colAt(rh.col, 1); typeof g(c + rh.row) === "number"; c = colAt(c, 1)){ retroYears.push(g(c + rh.row)); retroCols.push(c); }
+  const retro = new Map();
+  for(let r = rh.row + 1; r <= rh.row + 40; r++){
+    const cls = S(g(rh.col + r));
+    if(!cls) break;
+    const byYear = new Map();
+    for(let i = 0; i < retroCols.length; i++) byYear.set(retroYears[i], N(g(retroCols[i] + r)));
+    retro.set(cls, byYear);
+  }
+  layout.push("Retro-expense reallocation: " + retro.size + " classes (" + Array.from(retro.keys()).join(", ") + ") in rows " +
+              (rh.row + 1) + "–" + (rh.row + retro.size) + ", years " + retroYears[0] + "–" + retroYears[retroYears.length - 1]);
+
+  /* block 3 — historical external QS by UWY: the "extQS" column of the table headed "UWY" */
+  const eh = find(function(c){ return normName(c.v) === "extqs" && sameRow(c, "uwy"); });
+  if(!eh) throw missing('the historical extQS table (a "UWY" header with an "extQS" column)');
+  const eu = sameRow(eh, "uwy");
+  const extQS = new Map();
+  for(let r = eh.row + 1; typeof g(eu.col + r) === "number"; r++) extQS.set(g(eu.col + r), N(g(eh.col + r)));
+  layout.push("Historical extQS: column " + eh.col + ", rows " + (eh.row + 1) + "–" + (eh.row + extQS.size));
+
+  /* block 4 — XoL gross loss ratio and reinstatement % per class (column left of "XoL GLR")
+     and per LoB code (two to the left), down to the "Total" row */
+  const gh = find(function(c){ return normName(c.v) === "xolglr"; });
+  if(!gh) throw missing('the "XoL GLR" table');
+  const rc = cells.find(function(x){ return x.row === gh.row && /^reinstatement/.test(normName(x.v)); });
+  if(!rc) throw missing('the "Reinstatement %" column next to "XoL GLR"');
+  const clsCol = colAt(gh.col, -1), lobCol = colToIdx(gh.col) >= 2 ? colAt(gh.col, -2) : null;
+  const glrByClass = new Map(), glrByLob = new Map();
+  const reinstByClass = new Map(), reinstByLob = new Map();
+  let gEnd = gh.row;
+  for(let r = gh.row + 1; r <= gh.row + 40; r++){
+    const cls = S(g(clsCol + r)), lob = lobCol ? S(g(lobCol + r)) : "";
+    if(!cls || normName(cls) === "total") break;
+    const glr = N(g(gh.col + r)), rein = N(g(rc.col + r));
+    glrByClass.set(cls, glr); reinstByClass.set(cls, rein);
+    if(lob){ glrByLob.set(lob, glr); reinstByLob.set(lob, rein); }
+    gEnd = r;
+  }
+  layout.push("XoL GLR / reinstatement: columns " + gh.col + " / " + rc.col + ", rows " + (gh.row + 1) + "–" + gEnd);
+
+  /* cross-check for the Energy reinstatement % (= new-structure ROL): the second "XoL recovery"
+     and "Ri premium" columns of the Energy table, from below its header to the "Total" row */
+  let energyRol = 0;
+  const lh = find(function(c){ return normName(c.v) === "grossloss"; });
+  if(lh){
+    const hdr = function(name){ return cells.filter(function(x){ return x.row === lh.row && normName(x.v) === name; }); };
+    const xr = hdr("xolrecovery"), rp = hdr("ripremium");
+    const tot = cells.find(function(x){ return x.row > lh.row && normName(x.v) === "total"; });
+    if(xr.length > 1 && rp.length > 1 && tot){
+      let sumI = 0, sumJ = 0;
+      for(let r = lh.row + 1; r < tot.row; r++){ sumI += N(g(xr[1].col + r)); sumJ += N(g(rp[1].col + r)); }
+      energyRol = div(sumJ, sumI);
+    }
+  }
+
+  /* block 5 — internal QS on future IBNR: the value right of "IntQS for IBNR" */
+  const qh = find(function(c){ return normName(c.v) === "intqsforibnr"; });
+  if(!qh) throw missing('the "IntQS for IBNR" cell');
+  const qRef = colAt(qh.col, 1) + qh.row;
+  if(typeof g(qRef) !== "number") throw new Error(PARAM_SHEET + ': the cell right of "IntQS for IBNR" (' + qRef + ") is not a number.");
+  const intQS = g(qRef);
+  layout.push("Internal QS for IBNR: " + qRef + " = " + (intQS * 100).toFixed(1) + "%");
+
+  return {
+    retro: retro, retroYears: retroYears,
+    extQS: extQS,
+    glrByClass: glrByClass, glrByLob: glrByLob,
+    reinstByClass: reinstByClass, reinstByLob: reinstByLob,
+    energyRol: energyRol,
+    intQS: intQS,
+    layout: layout
+  };
+}
+function lookupByLobThenClass(mapLob, mapClass, lob, cls){
+  if(lob === "DCFIL" || lob === "DCMAR" || lob === "DCBON"){
+    if(mapLob.has(lob)) return mapLob.get(lob);
+  }
+  if(mapClass.has(cls)) return mapClass.get(cls);
+  if(mapClass.has("Other")) return mapClass.get("Other");
+  return 0;
+}
+
+/* ==========================================================================
+   8. THE MODEL
+   ========================================================================== */
+function buildModel(src, opts, log){
+  const warn = [];
+  const P = readParams(src.energy);
+  const intQS = P.intQS;
+  const cede = 1 - intQS;                       /* share retained after internal QS */
+
+  /* ---------- LoBs ---------- */
+  const lobRows = src.lobs.filter(function(r){ return S(r.A) && UP(r.A) !== "ALL"; });
+  const lobs = lobRows.map(function(r){ return S(r.A); });
+  const classOf = new Map(), aggOf = new Map(), unsClassOf = new Map();
+  for(const r of lobRows){
+    const lob = S(r.A), cls = S(r.B), agg = S(r.C);
+    classOf.set(lob, cls);
+    aggOf.set(lob, agg || lob);
+    unsClassOf.set(lob, (cls === "Energy" || cls === "Life" || cls === "Property") ? cls : "Discontinued");
+  }
+
+  /* ---------- Exclusions ---------- */
+  const excluded = new Set(src.excl.map(function(r){ return UP(r.A); }).filter(Boolean));
+
+  /* ---------- Earned IBNR, keyed by policy ---------- */
+  const eiStatByPol = new Map();     /* policy -> {K,L,M,N} */
+  const eiMbeByPol  = new Map();     /* policy -> {AB,AC,AD,AE} */
+  for(const r of src.eibnr){
+    const pa = UP(r.A);
+    if(pa){
+      let a = eiStatByPol.get(pa);
+      if(!a){ a = { K:0, L:0, M:0, Nn:0 }; eiStatByPol.set(pa, a); }
+      a.K += N(r.K); a.L += N(r.L); a.M += N(r.M); a.Nn += N(r.N);
+    }
+    const pr = UP(r.R);
+    if(pr){
+      let b = eiMbeByPol.get(pr);
+      if(!b){ b = { AB:0, AC:0, AD:0, AE:0 }; eiMbeByPol.set(pr, b); }
+      b.AB += N(r.AB); b.AC += N(r.AC); b.AD += N(r.AD); b.AE += N(r.AE);
+    }
+    if(pa && pr && pa !== pr) warn.push("Earned IBNR row " + r.__row + ": the Statutory and MBE blocks are not aligned (" + pa + " vs " + pr + "). The workbook slices both blocks with the Statutory block's derived LoB/UWY.");
+  }
+
+  /* ---------- Production: pass 1 ---------- */
+  const uwyFloor = opts.uwyFloor;
+  const prod = [];
+  const fgByPol = new Map();
+  const prodByPol = new Map();
+  const sumFHbyLobUwy = new Map();        /* fg|W (raw uwy) -> FH  (XoL pro-rata base) */
+  const gwpOffUwy = new Map();            /* office|uwy -> AA+AZ, FG<>DCFRO */
+  const gwpOffUwyLob = new Map();         /* office|uwy|lob -> AA+AZ */
+  let uwyMax = uwyFloor;
+
+  for(const r of src.prod){
+    const pol = UP(r.A);
+    if(!pol) continue;
+    const fg = S(r.FG);
+    const w  = N(r.W);
+    const ok = !excluded.has(pol);
+    const AA = N(r.AA), AZ = N(r.AZ);
+
+    let commA = 0; for(const c of PROD_COMM_A) commA += N(r[c]);
+    let commB = 0; for(const c of PROD_COMM_B) commB += N(r[c]);
+
+    const FH = ok ? AA + AZ : 0;
+    const FI = ok ? -N(r.DQ) : 0;
+    const FJ = ok ? -N(r.DR) : 0;
+    const FK = ok ? -(N(r.CO) + N(r.CS)) : 0;
+    const FL = ok ? (N(r.CW) + N(r.CY)) : 0;
+    const FM = ok ? (N(r.EP) + N(r.ET)) : 0;
+    const FN = ok ? FH + N(r.CO) + N(r.CS) - N(r.CW) - N(r.CY) : 0;
+    const FP = ok ? -(N(r.DU) + N(r.DX)) : 0;
+    const FQ = ok ? FI - N(r.EK) : 0;
+    const FR = ok ? FJ - N(r.EJ) - N(r.EK) : 0;
+    const FS = ok ? FN - N(r.EP) - N(r.ET) : 0;
+    const FV = ok ? FQ - N(r.EM) : 0;
+    const FW = ok ? FR - N(r.EM) - N(r.EL) : 0;
+    const FX = ok ? -(N(r.AB) + N(r.AC) + N(r.BA) + N(r.BB)) : 0;
+    const FY = ok ? -(commA + commB) : 0;
+
+    const st = eiStatByPol.get(pol), mb = eiMbeByPol.get(pol);
+    const row = {
+      pol: pol, fg: fg, w: w,
+      branch: UP(r.Q), office: S(r.R), officeKey: normName(r.R),
+      FH:FH, FI:FI, FJ:FJ, FK:FK, FL:FL, FM:FM, FN:FN, FP:FP,
+      FQ:FQ, FR:FR, FS:FS, FV:FV, FW:FW, FX:FX, FY:FY, FO:0, FT:0, FU:0,
+      FZ: st ? st.K  : 0, GA: st ? st.M  : 0, GB: st ? st.Nn : 0, GC: st ? st.L  : 0,
+      GD: mb ? mb.AB : 0, GE: mb ? mb.AD : 0, GF: mb ? mb.AE : 0, GG: mb ? mb.AC : 0,
+      ok: ok
+    };
+    prod.push(row);
+    if(fg && !fgByPol.has(pol)) fgByPol.set(pol, fg);
+    if(!prodByPol.has(pol)) prodByPol.set(pol, row);
+    if(fg) bump(sumFHbyLobUwy, fg + "|" + w, FH);
+    if(w > uwyMax && w <= uwyFloor + 40) uwyMax = w;
+
+    if(fg !== "DCFRO"){
+      const off = row.officeKey;              /* normName: SUMIFS ignores case, and it matches the XoL UWY keys */
+      bump(gwpOffUwy, off + "|" + w, AA + AZ);
+      if(fg) bump(gwpOffUwyLob, off + "|" + w + "|" + fg, AA + AZ);
+    }
+  }
+  if(!prod.length) throw new Error("The Production file sheet has no data rows from row 4 onward.");
+
+  /* ---------- Earned IBNR: derive resclass + UWY, then aggregate ---------- */
+  const eiAgg = new Map();     /* fg|uwy|branchKey -> sums */
+  let eiUnmatched = 0;
+  for(const r of src.eibnr){
+    const pol = UP(r.A);
+    const fg = fgByPol.get(pol);
+    if(fg === undefined){ if(pol) eiUnmatched++; continue; }
+    const y = serialYear(r.I);
+    const uwy = Math.max(uwyFloor, y === null ? uwyFloor : y);
+    if(uwy > uwyMax) uwyMax = uwy;
+    const mbeUK  = UP(r.Y) === "UK BRANCH";
+    const statUK = UP(r.H) === "UK BRANCH";
+    const k = fg + "|" + uwy;
+    let a = eiAgg.get(k);
+    if(!a){
+      a = { mbeGross:0, mbeIntQS:0, mbeExtQS:0, mbeXoL:0, statGross:0, statIntQS:0, statExtQS:0, statXoL:0,
+            ukMbeGross:0, ukMbeIntQS:0, ukMbeExtQS:0, ukMbeXoL:0,
+            ukStatGross:0, ukStatExtQS:0, ukStatXoL:0, ukStatIntQSonY:0 };
+      eiAgg.set(k, a);
+    }
+    a.mbeGross += N(r.AB); a.mbeIntQS += N(r.AC); a.mbeExtQS += N(r.AD); a.mbeXoL += N(r.AE);
+    a.statGross += N(r.K);  a.statIntQS += N(r.L);  a.statExtQS += N(r.M);  a.statXoL += N(r.N);
+    if(mbeUK){
+      a.ukMbeGross += N(r.AB); a.ukMbeIntQS += N(r.AC); a.ukMbeExtQS += N(r.AD); a.ukMbeXoL += N(r.AE);
+      a.ukStatIntQSonY += N(r.L);      /* Summary_UK slices Statutory IntQS with the MBE branch column */
+    }
+    if(statUK){
+      a.ukStatGross += N(r.K); a.ukStatExtQS += N(r.M); a.ukStatXoL += N(r.N);
+    }
+  }
+  if(eiUnmatched) warn.push(eiUnmatched + " Earned IBNR row(s) have a policy reference that is not in the Production file, so they carry no LoB and drop out of every LoB slice (they also drop out in the workbook).");
+
+  /* ---------- ABE-MBE blocks ---------- */
+  const abeUlt = new Map();      /* lob|beType|typeClaim|uwy|measure -> value */
+  const abeLR  = new Map();      /* lob|uwy -> {mbe, stat} */
+  for(const r of src.abe){
+    const lob = S(r.A);
+    if(lob){
+      const k = lob + "|" + S(r.B) + "|" + S(r.C) + "|" + N(r.D) + "|" + S(r.E);
+      bump(abeUlt, k, N(r.F));
+    }
+    const lr = S(r.L);
+    if(lr && typeof r.M === "number") abeLR.set(lr + "|" + N(r.M), { mbe: N(r.O), stat: N(r.Q) });
+  }
+  /* SIBNR block: PolicyRef in V, amount in W; LoB / UWY / branch looked up from Production */
+  const sibnr = [];
+  const sibnrAgg = new Map();     /* fg|uwy -> {all, uk} */
+  const sibnrReinstAgg = new Map();
+  /* The LoB / UWY / branch columns of this block are XLOOKUPs into the Production file in
+     most rows but hand-typed in others (a manually added loss), so the sheet values win and
+     the Production lookup is only a fallback. */
+  for(const r of src.abe){
+    const pol = UP(r.V);
+    if(!pol || typeof r.W !== "number") continue;
+    let fg = S(r.Y), y = typeof r.Z === "number" ? r.Z : null, br = S(r.X);
+    if(!fg || fg.toLowerCase() === "err" || y === null){
+      const pr = prodByPol.get(pol);
+      if(!pr){ warn.push("ABE-MBE SIBNR policy " + pol + " has no LoB/UWY on the sheet and is not in the Production file — it is skipped."); continue; }
+      if(!fg || fg.toLowerCase() === "err") fg = pr.fg;
+      if(y === null) y = pr.w;
+      if(!br || br.toLowerCase() === "err") br = pr.branch;
+    }
+    const isUK = br.toUpperCase() === "UK BRANCH";
+    const k = fg + "|" + y;
+    let a = sibnrAgg.get(k);
+    if(!a){ a = { all:0, uk:0 }; sibnrAgg.set(k, a); }
+    a.all += N(r.W); if(isUK) a.uk += N(r.W);
+    bump(sibnrReinstAgg, k, N(r.AD));
+    sibnr.push({ pol: pol, amount: N(r.W), lob: fg, uwy: y, uk: isUK, net: N(r.AC), netNet: N(r.AB), netReinst: N(r.AD) });
+  }
+
+  /* ---------- XoL engine: layout of the XoL sheets ----------
+     The LoB columns and each LoB's class come from XoL UWY, the office columns from the header
+     row of XoL Premiums, so offices or LoBs added to the workbook are picked up. */
+  const layout = P.layout.slice();
+  const blockA = readBlockA(src.xoluwy);
+  const XOL_LOBS = blockA.lobs || XOL_LOBS_DEFAULT;
+  const xolCls = readXolClasses(src.xoluwy);
+  const XOL_MATRIX_CLASS = xolCls ? xolCls.map : XOL_MATRIX_CLASS_DEFAULT;
+  if(src.xoluwy && src.xoluwy.length){
+    if(!blockA.lobs) warn.push("XoL UWY: no LoB-code header row (DCBON, DCENR, …) was found above the office grid, so the default LoB list was used.");
+    if(!xolCls) warn.push('XoL UWY: the class row above "Allocation to UWY and Lux share" was not found, so the default LoB-to-class map was used for the retro-expense reallocation.');
+  }
+  layout.push("XoL LoBs (" + XOL_LOBS.length + "): " + XOL_LOBS.join(", ") + (blockA.lobs ? ", from the XoL UWY office grid" : ", default list"));
+  if(xolCls) layout.push("XoL LoB classes: XoL UWY " + xolCls.where);
+  const noRetro = XOL_LOBS.filter(function(l){ const c = XOL_MATRIX_CLASS[l]; return c && !P.retro.has(c); });
+  if(noRetro.length) warn.push("The retro-expense table has no row for the class of " + noRetro.join(", ") + ", so their XoL premium gets factor 0 from 2019 on.");
+
+  /* ---------- XoL engine: block A, office -> LoB share of GWP ---------- */
+  const treatyYearFrom = 2012;
+  const blockAShare = new Map();  /* office|uwy|lob -> share */
+  for(const [k, tot] of gwpOffUwy){
+    for(const lob of XOL_LOBS){
+      if(!lob) continue;
+      const v = gwpOffUwyLob.get(k + "|" + lob);
+      if(v) blockAShare.set(k + "|" + lob, div(v, tot));
+    }
+  }
+  /* Some office/UWY/LoB cells of this grid are hand-set in the workbook (the "manual
+     adjustments in blue" — e.g. the Bonds book moving between Madrid and Italy), so when the
+     XoL UWY sheet is supplied its own grid wins and the differences are reported. */
+  const blockASheet = blockA.map;
+  const manualA = [];
+  for(const [k, v] of blockASheet){
+    const c = blockAShare.get(k) || 0;
+    if(Math.abs(v - c) > 1e-9) manualA.push({ key: k, sheet: v, computed: c });
+  }
+  if(!blockASheet.size){
+    warn.push("No XoL UWY sheet was supplied, so the office-to-LoB allocation is computed from production GWP throughout. The workbook hand-sets some of those cells, so the XoL premium split by LoB may differ from the Excel.");
+  }
+  const shareA = function(office, uwy, lob){
+    const k = office + "|" + uwy + "|" + lob;
+    if(blockASheet.has(k)) return blockASheet.get(k);
+    return blockAShare.get(k) || 0;
+  };
+
+  /* ---------- XoL Premiums: MDP per LoB and share per UWY per treaty ---------- */
+  const xl = readXolLayout(src.xolp);
+  const prodOffices = new Set();
+  for(const k of gwpOffUwy.keys()) prodOffices.add(k.split("|")[0]);
+  const luxCols = xl.lux.map(function(l){
+    const office = normName(XOL_OFFICE_ALIAS[l.key] || l.label);
+    return { col: l.col, label: l.label, office: office, used: !XOL_OFFICE_EXCLUDED.has(l.key),
+             known: blockA.offices.has(office) || prodOffices.has(office) };
+  });
+  layout.push("XoL Premiums: header row " + xl.row + ", From/To/MDP in " + xl.from + "/" + xl.to + "/" + xl.mdp +
+              ", Lux shares " + luxCols[0].col + "–" + luxCols[luxCols.length - 1].col + " (" + luxCols.length + " offices; " +
+              luxCols.filter(function(c){ return !c.used; }).map(function(c){ return c.label.trim(); }).join(", ") + " left out, as in the workbook)");
+  const treaties = [];
+  const unknownOff = new Map();
+  let badTreatyYear = 0;
+  for(const r of src.xolp){
+    if(r.__row <= xl.row) continue;
+    const from = r[xl.from], to = r[xl.to], mdp = N(r[xl.mdp]);
+    if(typeof from !== "number" || typeof to !== "number") continue;
+    if(!mdp) continue;
+    const y0 = serialYear(from);
+    if(y0 === null || y0 < treatyYearFrom || y0 > uwyFloor + 40){ badTreatyYear++; continue; }
+    const perLob = new Array(XOL_LOBS.length).fill(0);
+    for(const o of luxCols){
+      const w = N(r[o.col]);
+      if(!w || !o.used) continue;
+      if(!o.known) bump(unknownOff, o.label.trim(), 1);
+      for(let li = 0; li < XOL_LOBS.length; li++){
+        const lob = XOL_LOBS[li];
+        if(!lob) continue;
+        perLob[li] += w * shareA(o.office, y0, lob);
+      }
+    }
+    const mdpPerLob = perLob.map(function(x){ return mdp * x; });
+    treaties.push({ name: S(r[xl.name]), from: from, to: to, mdp: mdp, mdpPerLob: mdpPerLob });
+  }
+  if(badTreatyYear) warn.push(badTreatyYear + " XoL Premiums row(s) have an inception year outside " + treatyYearFrom + "–" + (uwyFloor + 40) + " and were skipped.");
+  for(const [lab, n] of unknownOff) warn.push('XoL Premiums: the office column "' + lab + '" matches no office block in XoL UWY and no office in the Production file, so its share on ' + n + " treaty row(s) goes to no LoB. Give it a block in XoL UWY named like the column.");
+
+  /* ---------- XoL UWY block B: gross signed premium by LoB x UWY ---------- */
+  const xolUwyTo = Math.max(uwyMax, uwyFloor + 11);
+  const blockB = new Map(), blockBTot = new Map();
+  for(const p of prod){
+    if(!p.fg) continue;
+    const b = p.w < uwyFloor ? uwyFloor : p.w;
+    if(b > xolUwyTo) continue;
+    bump(blockB, p.fg + "|" + b, p.FH);
+    bump(blockBTot, p.fg, p.FH);
+  }
+
+  /* ---------- XoL UWY block C: retro premium allocated to UWY ---------- */
+  const blockC = new Map();
+  for(let li = 0; li < XOL_LOBS.length; li++){
+    const lob = XOL_LOBS[li];
+    if(!lob) continue;
+    const cls = XOL_MATRIX_CLASS[lob];
+    for(let y = uwyFloor; y <= xolUwyTo; y++){
+      let acc = 0;
+      for(const t of treaties){
+        const m = t.mdpPerLob[li];
+        if(m) acc += m * yearShare(t.from, t.to, y);
+      }
+      let f = 1;
+      if(y > 2018){
+        const byYear = cls ? P.retro.get(cls) : null;
+        f = byYear && byYear.has(y) ? byYear.get(y) : 0;
+      }
+      blockC.set(lob + "|" + y, acc * f);
+    }
+  }
+
+  /* ---------- Moscow Property redistribution ---------- */
+  const moscow = { DCPRO: new Map(), PRTOT: new Map() };
+  const mos = opts.moscow || MOSCOW_DEFAULT;
+  for(const which of ["DCPRO","PRTOT"]){
+    const m = mos[which] || {};
+    moscow[which].set(uwyFloor, N(m.floor));
+    for(const k in m){ if(k !== "floor") moscow[which].set(+k, N(m[k])); }
+  }
+
+  /* ---------- XoL UWY final matrix ---------- */
+  const xolMatrix = new Map();   /* uwy|lob -> net XoL premium */
+  for(let li = 0; li < XOL_LOBS.length; li++){
+    const lob = XOL_LOBS[li];
+    if(!lob) continue;
+    const isDC = lob.slice(0, 2) === "DC";
+    const rule = XOL_MATRIX_RULE[lob] || { kind: isDC ? "dcPool" : "direct", poolFrom:2024, poolTo:xolUwyTo, cutoff:2024 };
+    const tot = blockBTot.get(lob) || 0;
+    for(let y = uwyFloor; y <= xolUwyTo; y++){
+      let v;
+      if(rule.kind === "firstTwoThenZero"){
+        v = (y === uwyFloor)
+          ? (blockC.get(lob + "|" + uwyFloor) || 0) + (blockC.get(lob + "|" + (uwyFloor + 1)) || 0)
+          : 0;
+      } else if(rule.kind === "dcPool"){
+        let pool = 0;
+        const pTo = rule.poolTo === undefined ? xolUwyTo : rule.poolTo;
+        for(let u = rule.poolFrom; u <= pTo; u++) pool += blockC.get(lob + "|" + u) || 0;
+        v = div(blockB.get(lob + "|" + y) || 0, tot) * pool
+          + (y < rule.cutoff ? (blockC.get(lob + "|" + y) || 0) : 0);
+      } else {
+        v = blockC.get(lob + "|" + y) || 0;
+      }
+      if(rule.moscow) v += moscow[rule.moscow].get(y) || 0;
+      xolMatrix.set(y + "|" + lob, v);
+    }
+  }
+
+  /* ---------- Production: pass 2, XoL premium per policy ---------- */
+  for(const p of prod){
+    if(!p.fg) continue;
+    const m = xolMatrix.get(p.w + "|" + p.fg);
+    if(m === undefined) continue;                       /* UWY outside the matrix -> 0, as in Excel */
+    const base = sumFHbyLobUwy.get(p.fg + "|" + p.w) || 0;
+    p.FO = m * div(p.FH, base);
+    p.FT = p.FO * cede;
+    p.FU = p.FP * cede;
+  }
+
+  /* ---------- Production aggregates by LoB x raw UWY x branch ----------
+     Two access patterns are needed because the workbook mixes conventions:
+       pv  — the summary sheets bucket the earliest year with  W <= floor
+       pvE — Unsigned IBNR / Unsigned Premiums match the year exactly        */
+  const PCOLS = ["FH","FI","FJ","FK","FL","FM","FN","FO","FP","FQ","FR","FS","FT","FU","FV","FW","FX","FY",
+                 "FZ","GA","GB","GC","GD","GE","GF","GG"];
+  const pAgg = new Map();       /* lob|rawUwy|branchKey -> {col: v} */
+  const earlyYears = new Set(); /* raw years at or below the floor */
+  function pslot(lob, uwy, bk){
+    const k = lob + "|" + uwy + "|" + bk;
+    let a = pAgg.get(k);
+    if(!a){ a = {}; for(const c of PCOLS) a[c] = 0; pAgg.set(k, a); }
+    return a;
+  }
+  for(const p of prod){
+    if(!p.fg) continue;
+    if(p.w <= uwyFloor) earlyYears.add(p.w);
+    else if(p.w > uwyMax && p.w <= uwyFloor + 40) uwyMax = p.w;
+    const slots = [pslot(p.fg, p.w, "ALL")];
+    if(p.branch === "UK BRANCH") slots.push(pslot(p.fg, p.w, "UK"));
+    for(const s of slots) for(const c of PCOLS) s[c] += p[c];
+  }
+  const pvE = function(lobSet, uwy, bk, col){
+    let t = 0;
+    for(const lob of lobSet){ const a = pAgg.get(lob + "|" + uwy + "|" + bk); if(a) t += a[col]; }
+    return t;
+  };
+  const pv = function(lobSet, uwy, bk, col){
+    if(uwy !== uwyFloor) return pvE(lobSet, uwy, bk, col);
+    let t = 0;
+    for(const y of earlyYears) t += pvE(lobSet, y, bk, col);
+    return t;
+  };
+
+  /* ---------- Unsigned IBNR (derived grid) ---------- */
+  const uIBNR = new Map();      /* lob|uwy -> row */
+  for(const lob of lobs){
+    const cls = unsClassOf.get(lob);
+    const glr = lookupByLobThenClass(P.glrByLob, P.glrByClass, lob, cls);
+    for(let y = uwyFloor; y <= uwyMax; y++){
+      const E = pv([lob], y, "ALL", "FH");
+      const G = pv([lob], y, "ALL", "FJ");
+      const H = pv([lob], y, "ALL", "GD");
+      const I = pv([lob], y, "ALL", "FZ");
+      const sib = sibnrAgg.get(lob + "|" + y);
+      const J = sib ? sib.all : 0;
+      const lr = abeLR.get(lob + "|" + y) || { mbe:0, stat:0 };
+      const F = (abeUlt.get(lob + "|MBE|A|" + y + "|GPrmU") || 0) + (abeUlt.get(lob + "|MBE|L|" + y + "|GPrmU") || 0);
+      const M = E === 0 ? 0 : F * lr.mbe - H + J - G;
+      const Nn = E === 0 ? 0 : F * lr.stat - I + J - G;
+      const eq = P.extQS.has(y) ? P.extQS.get(y) : 0;
+
+      const Q = cls === "Energy" ? M * eq : 0;
+      const R = (M - Q) * glr;
+      const T = M - Q - R;
+      const Sx = T * intQS;
+      const U = T - Sx;
+
+      const V = cls === "Energy" ? Nn * eq : 0;
+      const W = (Nn - V) * glr;
+      const Y = Nn - V - W;
+      const X = Y * intQS;
+      const Z = Y - X;
+
+      const ukShare = div(pv([lob], y, "UK", "FH"), E);
+      const ukOn = (lob === "ENCON" && (y === 2021 || y === 2022 || y === 2023));
+      const AC = ukOn ? M * ukShare : 0;
+      const AD = ukOn ? Nn * ukShare : 0;
+      const AE = ukOn && cls === "Energy" ? AC * eq : 0;
+      const AF = ukOn ? (AC - AE) * glr : 0;
+      const AG = ukOn ? (AC - AE - AF) * intQS : 0;
+      const AH = ukOn && cls === "Energy" ? AD * eq : 0;
+      const AI = ukOn ? (AD - AH) * glr : 0;
+      const AJ = ukOn ? (AD - AH - AI) * intQS : 0;
+
+      uIBNR.set(lob + "|" + y, {
+        lob:lob, uwy:y, cls:cls, E:E, F:F, G:G, H:H, I:I, J:J, K:lr.mbe, L:lr.stat,
+        M:M, Nn:Nn, Q:Q, R:R, S:Sx, T:T, U:U, V:V, W:W, X:X, Y:Y, Z:Z,
+        ukShare:ukShare, AC:AC, AD:AD, AE:AE, AF:AF, AG:AG, AH:AH, AI:AI, AJ:AJ
+      });
+    }
+  }
+  const ui = function(lobSet, uwy, col){
+    let t = 0;
+    for(const lob of lobSet){ const r = uIBNR.get(lob + "|" + uwy); if(r) t += r[col]; }
+    return t;
+  };
+
+  /* ---------- Unsigned Premiums (derived grid) ---------- */
+  const uPrem = new Map();
+  for(const lob of lobs){
+    const cls = unsClassOf.get(lob);
+    const rein = lookupByLobThenClass(P.reinstByLob, P.reinstByClass, lob, cls);
+    for(let y = uwyFloor; y <= uwyMax; y++){
+      const signed = pv([lob], y, "ALL", "FH");
+      const ult = abeUlt.get(lob + "|FST|A|" + y + "|GPrmU") || 0;
+      const D = ult - signed;
+      const E = Math.max(0, div(pvE([lob], y, "ALL", "FY"), pvE([lob], y, "ALL", "FH")));
+      const F = 0;
+      const eq = P.extQS.has(y) ? P.extQS.get(y) : 0;
+      const G = cls === "Energy" ? eq * (D - F) : 0;
+      const H = 0;
+      const xolIbnr = ui([lob], y, "R");
+      const I = xolIbnr * rein + (sibnrReinstAgg.get(lob + "|" + y) || 0);
+      const J = D - F - G - H + I;
+      const K = (D * (1 - E) - F - G - H) * intQS;
+      const L = 0;
+      const M = I * cede;
+      const Nn = J - K - L + M;
+      uPrem.set(lob + "|" + y, { lob:lob, uwy:y, cls:cls, D:D, E:E, F:F, G:G, H:H, I:I, J:J, K:K, L:L, M:M, Nn:Nn });
+    }
+  }
+  const up = function(lobSet, uwy, col){
+    let t = 0;
+    for(const lob of lobSet){ const r = uPrem.get(lob + "|" + uwy); if(r) t += r[col]; }
+    return t;
+  };
+
+  const ei = function(lobSet, uwy, col){
+    let t = 0;
+    for(const lob of lobSet){ const a = eiAgg.get(lob + "|" + uwy); if(a) t += a[col]; }
+    return t;
+  };
+
+  return {
+    params: P, intQS: intQS, cede: cede, warn: warn,
+    lobs: lobs, classOf: classOf, aggOf: aggOf, unsClassOf: unsClassOf,
+    uwyFloor: uwyFloor, uwyMax: uwyMax, xolUwyTo: xolUwyTo,
+    prod: prod, pv: pv, pvE: pvE, ei: ei, ui: ui, up: up, earlyYears: earlyYears,
+    uIBNR: uIBNR, uPrem: uPrem, sibnr: sibnr, sibnrAgg: sibnrAgg,
+    xolMatrix: xolMatrix, blockB: blockB, blockBTot: blockBTot, blockC: blockC,
+    treaties: treaties, moscow: moscow, __shareA: shareA, blockAShare: blockAShare,
+    manualA: manualA, blockASheetCells: blockASheet.size,
+    xolLobs: XOL_LOBS, luxCols: luxCols, layout: layout,
+    totals: (function(){
+      const t = {};
+      for(const c of PCOLS){ t[c] = 0; for(const p of prod) t[c] += p[c]; }
+      return t;
+    })()
+  };
+}
+
+/* ==========================================================================
+   9. the four tables, for one (LoB selection, basis, branch)
+   ========================================================================== */
+function buildTables(M, sel){
+  const lobSet = sel.lobSet;
+  const isMBE = sel.basis === "MBE";
+  const uk = sel.branch === "UK";
+  const bk = uk ? "UK" : "ALL";
+  const years = [];
+  for(let y = M.uwyFloor; y <= M.uwyMax; y++) years.push(y);
+
+  /* ---------- step 1 : gross ---------- */
+  const t2 = years.map(function(y){
+    const B = M.pv(lobSet, y, bk, "FH");
+    const C = uk ? 0 : M.up(lobSet, y, "D");
+    const D = B + C;
+    const E = M.pv(lobSet, y, bk, "FI");
+    const F = M.pv(lobSet, y, bk, "FJ");
+    const G = uk ? sumSib(M, lobSet, y, true) : sumSib(M, lobSet, y, false);
+    const H = (uk ? M.ei(lobSet, y, "ukMbeGross")  : M.ei(lobSet, y, "mbeGross"))  - G;
+    const I = uk ? M.ui(lobSet, y, "AC") : M.ui(lobSet, y, "M");
+    const J = F + G + H + I;
+    const L = (uk ? M.ei(lobSet, y, "ukStatGross") : M.ei(lobSet, y, "statGross")) - G;
+    const Nx = uk ? M.ui(lobSet, y, "AD") : M.ui(lobSet, y, "Nn");
+    const NN = L + Nx + G + F;
+    return { uwy:y, B:B, C:C, D:D, E:E, F:F, G:G, H:H, I:I, J:J, K:div(J, D), L:L, M:Nx, N:NN, O:div(NN, D) };
+  });
+
+  /* ---------- step 2 : net before internal QS ---------- */
+  const t3 = years.map(function(y, i){
+    const g = t2[i];
+    const B = M.pv(lobSet, y, bk, "FK");
+    const C = M.pv(lobSet, y, bk, "FL");
+    const D = M.pv(lobSet, y, bk, "FO");
+    const E = M.pv(lobSet, y, bk, "FP");
+    const F = uk ? 0 : M.up(lobSet, y, "F");
+    const G = uk ? 0 : M.up(lobSet, y, "G");
+    const H = uk ? 0 : M.up(lobSet, y, "H");
+    const I = uk ? 0 : M.up(lobSet, y, "I");
+    const J = g.D - (B + C + D + E + F + G + H + I);
+    const K = M.pv(lobSet, y, bk, "FQ");
+    const L = M.pv(lobSet, y, bk, "FR");
+    const Mm = 0;                                       /* net SIBNR — blank in the workbook */
+    const Nn = 0;                                       /* FAC IBNR earned — blank */
+    const O = uk ? M.ei(lobSet, y, "ukMbeExtQS") : M.ei(lobSet, y, "mbeExtQS");
+    const Pp = uk ? M.ei(lobSet, y, "ukMbeXoL")  : M.ei(lobSet, y, "mbeXoL");
+    const Q = g.G + g.H - Nn - O - Pp;
+    const R = 0;                                        /* FAC IBNR unsigned — blank */
+    const Sx = uk ? M.ui(lobSet, y, "AE") : M.ui(lobSet, y, "Q");
+    const T = uk ? M.ui(lobSet, y, "AF") : M.ui(lobSet, y, "R");
+    const U = g.I - R - Sx - T;
+    const V = L + Mm + Q + U;
+    const X = 0;
+    const Y = uk ? M.ei(lobSet, y, "ukStatExtQS") : M.ei(lobSet, y, "statExtQS");
+    const Z = uk ? M.ei(lobSet, y, "ukStatXoL")   : M.ei(lobSet, y, "statXoL");
+    const AA = g.G + g.L - X - Y - Z;
+    const AB = 0;
+    const AC = uk ? M.ui(lobSet, y, "AH") : M.ui(lobSet, y, "V");
+    const AD = uk ? M.ui(lobSet, y, "AI") : M.ui(lobSet, y, "W");
+    const AE = g.M - AB - AC - AD;
+    const AF = L + Mm + AA + AE;
+    return { uwy:y, B:B, C:C, D:D, E:E, F:F, G:G, H:H, I:I, J:J, K:K, L:L, M:Mm,
+             N:Nn, O:O, P:Pp, Q:Q, R:R, S:Sx, T:T, U:U, V:V, W:div(V, J),
+             X:X, Y:Y, Z:Z, AA:AA, AB:AB, AC:AC, AD:AD, AE:AE, AF:AF, AG:div(AF, J) };
+  });
+
+  /* ---------- step 3 : net after internal QS ---------- */
+  const t4 = years.map(function(y, i){
+    const n = t3[i];
+    const B = M.pv(lobSet, y, bk, "FM");
+    const C = n.E * M.cede;
+    const D = n.D * M.cede;
+    const E = uk ? 0 : M.up(lobSet, y, "K");
+    const F = uk ? 0 : M.up(lobSet, y, "M");
+    const G = n.H * M.cede;
+    const H = n.J + n.D + n.E - B - C - D + n.H + n.I - F - G - E;
+    const I = M.pv(lobSet, y, bk, "FV");
+    const J = M.pv(lobSet, y, bk, "FW");
+    const K = 0;                                        /* net net SIBNR — blank in the workbook */
+    const L = uk ? M.ei(lobSet, y, "ukMbeIntQS") : M.ei(lobSet, y, "mbeIntQS");
+    const Mm = n.Q - L;
+    const Nn = uk ? M.ui(lobSet, y, "AG") : M.ui(lobSet, y, "S");
+    const O = n.U - Nn;
+    const Pp = J + Mm + O + K;
+    const R = uk ? M.ei(lobSet, y, "ukStatIntQSonY") : M.ei(lobSet, y, "statIntQS");
+    const Sx = n.AA - R;
+    const T = uk ? M.ui(lobSet, y, "AJ") : M.ui(lobSet, y, "X");
+    const U = n.AE - T;
+    const V = J + Sx + U + K;
+    return { uwy:y, B:B, C:C, D:D, E:E, F:F, G:G, H:H, I:I, J:J, K:K,
+             L:L, M:Mm, N:Nn, O:O, P:Pp, Q:div(Pp, H),
+             R:R, S:Sx, T:T, U:U, V:V, W:div(V, H) };
+  });
+
+  /* ---------- the ladder ---------- */
+  const cut = sel.cutoff;
+  const buckets = [];
+  const early = years.filter(function(y){ return y <= cut; });
+  if(early.length) buckets.push({ label: "≤" + cut, years: early });
+  years.filter(function(y){ return y > cut; }).forEach(function(y){ buckets.push({ label: String(y), years:[y] }); });
+
+  const main = buckets.map(function(b){
+    const idx = b.years.map(function(y){ return years.indexOf(y); });
+    const s = function(tab, col){ let t = 0; for(const i of idx) t += tab[i][col]; return t; };
+    const gP = s(t2, "D"), gI = s(t2, "F");
+    const gB = s(t2, "G") + (isMBE ? s(t2, "H") + s(t2, "I") : s(t2, "L") + s(t2, "M"));
+    const nP = s(t3, "J"), nI = s(t3, "L");
+    const nB = s(t3, "M") + (isMBE ? s(t3, "Q") + s(t3, "U") : s(t3, "AA") + s(t3, "AE"));
+    const xP = s(t4, "H"), xI = s(t4, "J");
+    const xB = s(t4, "K") + (isMBE ? s(t4, "M") + s(t4, "O") : s(t4, "S") + s(t4, "U"));
+    return {
+      label: b.label,
+      gPrem:gP, gInc:gI, gIbnr:gB, gUlt:gI + gB, gulr:div(gI + gB, gP),
+      nPrem:nP, nInc:nI, nIbnr:nB, nUlt:nI + nB, nulr:div(nI + nB, nP),
+      xPrem:xP, xInc:xI, xIbnr:xB, xUlt:xI + xB, nnulr:div(xI + xB, xP)
+    };
+  });
+  const tot = { label: "Total" };
+  const keys = ["gPrem","gInc","gIbnr","gUlt","nPrem","nInc","nIbnr","nUlt","xPrem","xInc","xIbnr","xUlt"];
+  for(const k of keys){ tot[k] = main.reduce(function(a, r){ return a + r[k]; }, 0); }
+  tot.gulr = div(tot.gUlt, tot.gPrem);
+  tot.nulr = div(tot.nUlt, tot.nPrem);
+  tot.nnulr = div(tot.xUlt, tot.xPrem);
+
+  return { years: years, main: main, mainTotal: tot, t2: t2, t3: t3, t4: t4, isMBE: isMBE, uk: uk };
+}
+function sumSib(M, lobSet, uwy, ukOnly){
+  let t = 0;
+  for(const lob of lobSet){
+    const a = M.sibnrAgg.get(lob + "|" + uwy);
+    if(a) t += ukOnly ? a.uk : a.all;
+  }
+  return t;
+}
+
+/* ==========================================================================
+   18. writing .xlsx — ZIP (stored) + minimal SpreadsheetML, no dependencies
+   ========================================================================== */
+const CRC_TABLE = (function(){
+  const t = new Uint32Array(256);
+  for(let n = 0; n < 256; n++){
+    let c = n;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(u8){
+  let c = 0xffffffff;
+  for(let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+/* entries: [{ name, data: Uint8Array }] — stored (method 0), which every
+   spreadsheet reader accepts and needs no compressor. */
+function zipStore(entries){
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+
+  function u16(v){ return [v & 0xff, (v >>> 8) & 0xff]; }
+  function u32(v){ return [v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff]; }
+
+  for(const e of entries){
+    const nameBytes = enc.encode(e.name);
+    const crc = crc32(e.data);
+    const local = [].concat(
+      u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(crc), u32(e.data.length), u32(e.data.length),
+      u16(nameBytes.length), u16(0)
+    );
+    parts.push(new Uint8Array(local), nameBytes, e.data);
+    central.push({ name: nameBytes, crc: crc, size: e.data.length, offset: offset });
+    offset += local.length + nameBytes.length + e.data.length;
+  }
+
+  const cdStart = offset;
+  for(const c of central){
+    const hdr = [].concat(
+      u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(c.crc), u32(c.size), u32(c.size),
+      u16(c.name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(c.offset)
+    );
+    parts.push(new Uint8Array(hdr), c.name);
+    offset += hdr.length + c.name.length;
+  }
+  const eocd = [].concat(
+    u32(0x06054b50), u16(0), u16(0), u16(central.length), u16(central.length),
+    u32(offset - cdStart), u32(cdStart), u16(0)
+  );
+  parts.push(new Uint8Array(eocd));
+
+  let total = 0;
+  for(const p of parts) total += p.length;
+  const out = new Uint8Array(total);
+  let at = 0;
+  for(const p of parts){ out.set(p, at); at += p.length; }
+  return out;
+}
+
+function xesc(s){
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");   /* control chars are illegal in XML */
+}
+
+/* style ids used when building sheets */
+const XS = {
+  general:0, title:1, label:2, text:3,
+  bandL1:4, bandL2:5, bandL3:6, bandNeutral:7,
+  colHead:8, colHeadLeft:9,
+  money:10, pct:11,
+  moneyTotal:12, pctTotal:13,
+  rowHead:14, rowHeadTotal:15,
+  delta:16, deltaTotal:17,
+  deltaUp:18, deltaDown:19, deltaUpTotal:20, deltaDownTotal:21
+};
+
+function xlsxStyles(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="3">' +
+    '<numFmt numFmtId="164" formatCode="#,##0.0,,"/>' +
+    '<numFmt numFmtId="165" formatCode="0.0%"/>' +
+    '<numFmt numFmtId="166" formatCode="+0.0%;-0.0%;0.0%"/>' +
+  '</numFmts>' +
+  /* delta colour lives in the font, not the number format: a format code can only name
+     Excel's eight basic colours, and the green asked for is Green, Accent 6, Darker 25% */
+  '<fonts count="8">' +
+    '<font><sz val="11"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="11"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="14"/><name val="Calibri"/></font>' +
+    '<font><sz val="11"/><color rgb="FFFF0000"/><name val="Calibri"/></font>' +                                          /* 4 red */
+    '<font><sz val="11"/><color rgb="FF3B7D23"/><name val="Calibri"/></font>' +                                          /* 5 green */
+    '<font><b/><sz val="11"/><color rgb="FFFF0000"/><name val="Calibri"/></font>' +                                      /* 6 red bold */
+    '<font><b/><sz val="11"/><color rgb="FF3B7D23"/><name val="Calibri"/></font>' +                                      /* 7 green bold */
+  '</fonts>' +
+  '<fills count="6">' +
+    '<fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFA50021"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF215F9A"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF4E95D9"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFE8E8E8"/><bgColor indexed="64"/></patternFill></fill>' +
+  '</fills>' +
+  '<borders count="2">' +
+    '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left/><right/><top style="thin"><color rgb="FF808080"/></top><bottom/><diagonal/></border>' +
+  '</borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="22">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +                                                     /* 0 general */
+    '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                       /* 1 title */
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                       /* 2 label */
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +                                                     /* 3 text */
+    '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="1" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="1" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="bottom" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="1" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="bottom"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +                             /* 10 money */
+    '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +                             /* 11 pct */
+    '<xf numFmtId="164" fontId="1" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="165" fontId="1" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left"/></xf>' +
+    '<xf numFmtId="0" fontId="1" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left"/></xf>' +
+    '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +                             /* 16 delta */
+    '<xf numFmtId="166" fontId="1" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="166" fontId="4" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' +               /* 18 delta up (red) */
+    '<xf numFmtId="166" fontId="5" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' +               /* 19 delta down (green) */
+    '<xf numFmtId="166" fontId="6" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="166" fontId="7" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+  '</cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+}
+
+/* sheet: { name, colWidths:[n], rows:[ [ {v,s,str} | null ] ], merges:["A4:E4"], freeze:{x,y} } */
+function xlsxSheet(sheet){
+  let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+  xml += '<sheetViews><sheetView workbookViewId="0">';
+  if(sheet.freeze){
+    const cell = idxToCol(sheet.freeze.x) + (sheet.freeze.y + 1);
+    xml += '<pane xSplit="' + sheet.freeze.x + '" ySplit="' + sheet.freeze.y +
+           '" topLeftCell="' + cell + '" activePane="bottomRight" state="frozen"/>';
+  }
+  xml += "</sheetView></sheetViews>";
+  xml += '<sheetFormatPr defaultRowHeight="15"/>';
+  if(sheet.colWidths && sheet.colWidths.length){
+    xml += "<cols>";
+    sheet.colWidths.forEach(function(w, i){
+      xml += '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>';
+    });
+    xml += "</cols>";
+  }
+  xml += "<sheetData>";
+  sheet.rows.forEach(function(cells, ri){
+    if(!cells) return;
+    const r = ri + 1;
+    let any = false, body = "";
+    cells.forEach(function(c, ci){
+      if(c === null || c === undefined) return;
+      const ref = idxToCol(ci) + r;
+      const s = c.s === undefined ? 0 : c.s;
+      if(c.str !== undefined && c.str !== null){
+        body += '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + xesc(c.str) + "</t></is></c>";
+        any = true;
+      } else if(typeof c.v === "number" && isFinite(c.v)){
+        body += '<c r="' + ref + '" s="' + s + '"><v>' + c.v + "</v></c>";
+        any = true;
+      } else if(s){
+        body += '<c r="' + ref + '" s="' + s + '"/>';
+        any = true;
+      }
+    });
+    if(any) xml += '<row r="' + r + '">' + body + "</row>";
+  });
+  xml += "</sheetData>";
+  if(sheet.merges && sheet.merges.length){
+    xml += '<mergeCells count="' + sheet.merges.length + '">';
+    sheet.merges.forEach(function(m){ xml += '<mergeCell ref="' + m + '"/>'; });
+    xml += "</mergeCells>";
+  }
+  xml += "</worksheet>";
+  return xml;
+}
+
+function buildXlsx(sheets){
+  const enc = new TextEncoder();
+  const files = [];
+  const add = (name, text) => files.push({ name: name, data: enc.encode(text) });
+
+  let ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+  sheets.forEach(function(s, i){
+    ct += '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+  });
+  ct += "</Types>";
+  add("[Content_Types].xml", ct);
+
+  add("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    "</Relationships>");
+
+  let wbXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>';
+  sheets.forEach(function(s, i){
+    wbXml += '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+  });
+  wbXml += "</sheets></workbook>";
+  add("xl/workbook.xml", wbXml);
+
+  let rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+  sheets.forEach(function(s, i){
+    rels += '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+  });
+  rels += '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+  rels += "</Relationships>";
+  add("xl/_rels/workbook.xml.rels", rels);
+
+  add("xl/styles.xml", xlsxStyles());
+  sheets.forEach(function(s, i){ add("xl/worksheets/sheet" + (i + 1) + ".xml", xlsxSheet(s)); });
+
+  return zipStore(files);
+}
+
+/* ==========================================================================
+   10. column specifications for the intermediate tables
+   ========================================================================== */
+const T2_COLS = [
+  { k:"B", l:"Signed premiums",   b:"g" },
+  { k:"C", l:"Unsigned premiums", b:"g" },
+  { k:"D", l:"Ultimate premiums", b:"g", strong:true },
+  { k:"E", l:"Case reserves",     b:"g" },
+  { k:"F", l:"Incurred claims",   b:"g" },
+  { k:"G", l:"SIBNR",             b:"g" },
+  { k:"H", l:"IBNR earned",       b:"mbe", sep:true },
+  { k:"I", l:"IBNR unsigned",     b:"mbe" },
+  { k:"J", l:"Claim ultimate",    b:"mbe", strong:true },
+  { k:"K", l:"GULR",              b:"mbe", pct:true },
+  { k:"L", l:"IBNR earned",       b:"stat", sep:true },
+  { k:"M", l:"IBNR unsigned",     b:"stat" },
+  { k:"N", l:"Claim ultimate",    b:"stat", strong:true },
+  { k:"O", l:"GULR",              b:"stat", pct:true }
+];
+const T3_COLS = [
+  { k:"B",  l:"Signed FAC prem",     b:"g" },
+  { k:"C",  l:"Signed extQS prem",   b:"g" },
+  { k:"D",  l:"Signed XoL prem",     b:"g" },
+  { k:"E",  l:"Signed RIP",          b:"g" },
+  { k:"F",  l:"Unsigned FAC prem",   b:"g" },
+  { k:"G",  l:"Unsigned extQS prem", b:"g" },
+  { k:"H",  l:"Unsigned XoL",        b:"g" },
+  { k:"I",  l:"Unsigned RIP",        b:"g" },
+  { k:"J",  l:"Ultimate net prem",   b:"g", strong:true },
+  { k:"K",  l:"Net case reserves",   b:"g" },
+  { k:"L",  l:"Net incurred claims", b:"g" },
+  { k:"M",  l:"Net SIBNR",           b:"g" },
+  { k:"N",  l:"FAC IBNR earned",     b:"mbe", sep:true },
+  { k:"O",  l:"extQS IBNR earned",   b:"mbe" },
+  { k:"P",  l:"XoL IBNR earned",     b:"mbe" },
+  { k:"Q",  l:"Net IBNR earned",     b:"mbe" },
+  { k:"R",  l:"FAC IBNR unsigned",   b:"mbe" },
+  { k:"S",  l:"extQS IBNR unsigned", b:"mbe" },
+  { k:"T",  l:"XoL IBNR unsigned",   b:"mbe" },
+  { k:"U",  l:"Net IBNR unsigned",   b:"mbe" },
+  { k:"V",  l:"Net claim ultimate",  b:"mbe", strong:true },
+  { k:"W",  l:"NULR",                b:"mbe", pct:true },
+  { k:"X",  l:"FAC IBNR earned",     b:"stat", sep:true },
+  { k:"Y",  l:"extQS IBNR earned",   b:"stat" },
+  { k:"Z",  l:"XoL IBNR earned",     b:"stat" },
+  { k:"AA", l:"Net IBNR earned",     b:"stat" },
+  { k:"AB", l:"FAC IBNR unsigned",   b:"stat" },
+  { k:"AC", l:"extQS IBNR unsigned", b:"stat" },
+  { k:"AD", l:"XoL IBNR unsigned",   b:"stat" },
+  { k:"AE", l:"Net IBNR unsigned",   b:"stat" },
+  { k:"AF", l:"Net claim ultimate",  b:"stat", strong:true },
+  { k:"AG", l:"NULR",                b:"stat", pct:true }
+];
+const T4_COLS = [
+  { k:"B", l:"Signed IntQS prem",     b:"g" },
+  { k:"C", l:"Signed RIP IntQS",      b:"g" },
+  { k:"D", l:"Signed XoL IntQS",      b:"g" },
+  { k:"E", l:"Unsigned IntQS prem",   b:"g" },
+  { k:"F", l:"Unsigned RIP IntQS",    b:"g" },
+  { k:"G", l:"Unsigned XoL IntQS",    b:"g" },
+  { k:"H", l:"Ultimate net net prem", b:"g", strong:true },
+  { k:"I", l:"Net net case reserves", b:"g" },
+  { k:"J", l:"Net net incurred",      b:"g" },
+  { k:"K", l:"Net net SIBNR",         b:"g" },
+  { k:"L", l:"IntQS IBNR earned",     b:"mbe", sep:true },
+  { k:"M", l:"Net net IBNR earned",   b:"mbe" },
+  { k:"N", l:"IntQS IBNR unsigned",   b:"mbe" },
+  { k:"O", l:"Net net IBNR unsigned", b:"mbe" },
+  { k:"P", l:"Net net claim ult",     b:"mbe", strong:true },
+  { k:"Q", l:"NNULR",                 b:"mbe", pct:true },
+  { k:"R", l:"IntQS IBNR earned",     b:"stat", sep:true },
+  { k:"S", l:"Net net IBNR earned",   b:"stat" },
+  { k:"T", l:"IntQS IBNR unsigned",   b:"stat" },
+  { k:"U", l:"Net net IBNR unsigned", b:"stat" },
+  { k:"V", l:"Net net claim ult",     b:"stat", strong:true },
+  { k:"W", l:"NNULR",                 b:"stat", pct:true }
+];
+
+/* ==========================================================================
+   11. formatting
+   ========================================================================== */
+let UNIT = 1000000;
+/* negatives take accounting parentheses rather than a colour — red now means "Gross" */
+function fmtNum(v){
+  if(v === null || v === undefined || !isFinite(v)) return "&mdash;";
+  const x = v / UNIT;
+  if(Math.abs(x) < (UNIT === 1 ? 0.5 : 0.05)) return '<span class="z">&mdash;</span>';
+  const d = UNIT === 1000000 ? 1 : 0;
+  const s = Math.abs(x).toLocaleString("en-GB", { minimumFractionDigits:d, maximumFractionDigits:d });
+  return x < 0 ? "(" + s + ")" : s;
+}
+function fmtPct(v){
+  if(v === null || v === undefined || !isFinite(v)) return "&mdash;";
+  if(v === 0) return '<span class="z">&mdash;</span>';
+  const s = Math.abs(v * 100).toLocaleString("en-GB", { minimumFractionDigits:1, maximumFractionDigits:1 }) + "%";
+  return v < 0 ? "(" + s + ")" : s;
+}
+function fmtRaw(v){
+  if(typeof v !== "number" || !isFinite(v)) return "";
+  return String(v);
+}
+function esc(s){
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+const BAND_CLASS = { g:"l1", mbe:"l2", stat:"l3" };
+
+/* ==========================================================================
+   12. state
+   ========================================================================== */
+const STATE = {
+  books: [], src: null, model: null, sel: null,
+  basis: "MBE", branch: "ALL", lobKey: "ALL", cutoff: null, tables: null, lobOptions: [], prior: null
+};
+
+const $ = function(id){ return document.getElementById(id); };
+function setProg(pct, msg){
+  $("prog").classList.add("on");
+  $("progBar").style.width = Math.round(pct * 100) + "%";
+  $("progMsg").textContent = msg;
+}
+function hideProg(){ $("prog").classList.remove("on"); }
+function tick(){ return new Promise(function(r){ setTimeout(r, 0); }); }
+
+/* ==========================================================================
+   13. loading
+   ========================================================================== */
+async function loadFiles(fileList){
+  $("fatal").innerHTML = "";
+  const files = Array.from(fileList).filter(function(f){ return /\.(xlsx|xlsm)$/i.test(f.name); });
+  if(!files.length){
+    $("fatal").innerHTML = '<div class="banner bad">Those files are not .xlsx or .xlsm workbooks. Save the input as .xlsx and try again.</div>';
+    return;
+  }
+  try{
+    STATE.books = [];
+    for(let i = 0; i < files.length; i++){
+      setProg(0.05 + 0.25 * i / files.length, "Opening " + files[i].name + " …");
+      await tick();
+      const buf = await files[i].arrayBuffer();
+      const wb = openWorkbook(buf);
+      STATE.books.push({ name: files[i].name, size: files[i].size, wb: wb });
+    }
+    renderFileList();
+
+    const loc = locateSheets(STATE.books);
+    const missing = loc.report.filter(function(r){ return r.required && !r.hit; });
+    if(missing.length){
+      hideProg();
+      $("fatal").innerHTML = '<div class="banner bad"><b>Missing input sheets.</b> These are needed and were not found in the files you loaded:<ul>' +
+        missing.map(function(m){ return "<li><code>" + esc(m.want) + "</code></li>"; }).join("") +
+        "</ul>Load the workbook that contains them, or rename the sheets to match.</div>";
+      return;
+    }
+
+    const src = {};
+    const order = ["lobs","excl","energy","xolp","abe","eibnr","prod","xoluwy"];
+    for(let i = 0; i < order.length; i++){
+      const key = order[i];
+      const hit = loc.found[key];
+      if(!hit){ src[key] = []; continue; }
+      setProg(0.3 + 0.55 * i / order.length, "Reading " + hit.sheet + " …");
+      await tick();
+      const spec = SHEET_SPEC[key];
+      src[key] = STATE.books[hit.book].wb.readSheet(hit.sheet, spec.cols, spec.start) || [];
+    }
+    STATE.src = src;
+    STATE.loc = loc;
+
+    setProg(0.9, "Calculating netting …");
+    await tick();
+
+    /* the earliest UWY the workbook collapses into its first bucket */
+    let minW = Infinity;
+    for(const r of src.prod) if(typeof r.W === "number" && r.W > 1990) minW = Math.min(minW, r.W);
+    const floor = 2017;
+
+    let moscow = null;
+    if(src.xoluwy && src.xoluwy.length) moscow = readMoscow(src.xoluwy);
+
+    STATE.model = buildModel(src, { uwyFloor: floor, moscow: moscow }, null);
+    STATE.minProdUwy = isFinite(minW) ? minW : floor;
+
+    buildLobOptions();
+    if(STATE.cutoff === null) STATE.cutoff = Math.min(2019, STATE.model.uwyMax);
+    $("inpCutoff").value = STATE.cutoff;
+    $("inpCutoff").min = STATE.model.uwyFloor;
+    $("inpCutoff").max = STATE.model.uwyMax;
+
+    setProg(1, "Done");
+    hideProg();
+    $("loader").classList.add("hidden");
+    $("controls").classList.remove("hidden");
+    $("output").classList.remove("hidden");
+    $("btnExport").disabled = false;
+    $("btnExportAll").disabled = false;
+    recompute();
+  } catch(err){
+    hideProg();
+    $("fatal").innerHTML = '<div class="banner bad"><b>Could not build the model.</b><br>' + esc(err && err.message ? err.message : String(err)) +
+      "</div>";
+    if(window.console) console.error(err);
+  }
+}
+
+/* Moscow Property redistribution, read from an existing "XoL UWY" sheet if present */
+/* found by its "Share GGWP" header (AK63 in Q3 2026): UWY labels one column left of it,
+   DCPRO / PRTOT under their own headers, four rows below */
+function readMoscow(rows){
+  const cell = {};
+  for(const r of rows) for(const k in r) if(k !== "__row") cell[k + r.__row] = r[k];
+  const cells = cellsOf(rows);
+  const h = cells.find(function(c){ return normName(c.v) === "shareggwp"; });
+  if(!h) return null;
+  const colOf = function(name){ const c = cells.find(function(x){ return x.row === h.row && normName(x.v) === name; }); return c ? c.col : null; };
+  const lc = colAt(h.col, -1), dcc = colOf("dcpro"), prc = colOf("prtot");
+  if(!dcc || !prc) return null;
+  const at = function(col){ return [1, 2, 3, 4].map(function(i){ return cell[col + (h.row + i)]; }); };
+  const lab = at(lc), dc = at(dcc), pr = at(prc);
+  if(dc.every(function(v){ return typeof v !== "number"; })) return null;
+  const out = { DCPRO:{}, PRTOT:{} };
+  for(let i = 0; i < 4; i++){
+    const key = (typeof lab[i] === "number") ? String(lab[i]) : "floor";
+    out.DCPRO[key] = N(dc[i]);
+    out.PRTOT[key] = N(pr[i]);
+  }
+  return out;
+}
+
+function renderFileList(){
+  const wanted = Object.keys(SHEET_SPEC).map(function(k){ return SHEET_SPEC[k].aliases[0]; });
+  $("filelist").innerHTML = STATE.books.map(function(b){
+    const chips = wanted.map(function(w){
+      const ok = b.wb.sheetNames.some(function(n){ return normName(n) === normName(w); });
+      return ok ? '<span class="chip found">' + esc(w) + "</span>" : "";
+    }).filter(Boolean).join("");
+    return '<div class="filerow"><div><div class="nm">' + esc(b.name) + "</div>" +
+      '<div class="sheetchips">' + (chips || '<span class="chip">no netting sheets recognised</span>') + "</div></div>" +
+      '<div class="sz">' + (b.size / 1048576).toFixed(1) + " MB</div></div>";
+  }).join("");
+}
+
+/* ==========================================================================
+   14. LoB selector
+   ========================================================================== */
+function buildLobOptions(){
+  const M = STATE.model;
+  const opts = [{ key:"ALL", label:"ALL — every line of business", group:"All", set: M.lobs.slice() }];
+
+  const aggMembers = new Map();
+  for(const lob of M.lobs){
+    const a = M.aggOf.get(lob) || lob;
+    if(!aggMembers.has(a)) aggMembers.set(a, []);
+    aggMembers.get(a).push(lob);
+  }
+  for(const [agg, members] of aggMembers){
+    if(members.length === 1 && members[0] === agg) continue;    /* identical to the single LoB */
+    opts.push({ key:"AGG:" + agg, label: agg + " — " + members.join(", "), group:"Aggregates", set: members.slice() });
+  }
+  const clsMembers = new Map();
+  for(const lob of M.lobs){
+    const c = M.classOf.get(lob) || "(unclassified)";
+    if(!clsMembers.has(c)) clsMembers.set(c, []);
+    clsMembers.get(c).push(lob);
+  }
+  for(const [cls, members] of clsMembers){
+    opts.push({ key:"CLS:" + cls, label: cls + " — " + members.join(", "), group:"Classes", set: members.slice() });
+  }
+  for(const lob of M.lobs){
+    opts.push({ key:"LOB:" + lob, label: lob + (M.classOf.get(lob) ? "  (" + M.classOf.get(lob) + ")" : ""),
+                group:"Lines of business", set:[lob] });
+  }
+  STATE.lobOptions = opts;
+
+  const groups = [];
+  for(const o of opts){ if(!groups.length || groups[groups.length-1].g !== o.group) groups.push({ g:o.group, items:[] }); groups[groups.length-1].items.push(o); }
+  $("selLob").innerHTML = groups.map(function(gr){
+    return '<optgroup label="' + esc(gr.g) + '">' +
+      gr.items.map(function(o){ return '<option value="' + esc(o.key) + '">' + esc(o.label) + "</option>"; }).join("") +
+      "</optgroup>";
+  }).join("");
+  $("selLob").value = STATE.lobKey;
+}
+function currentLobSet(){
+  const o = STATE.lobOptions.find(function(x){ return x.key === STATE.lobKey; });
+  return o ? o.set : STATE.model.lobs.slice();
+}
+function currentLobLabel(){
+  const o = STATE.lobOptions.find(function(x){ return x.key === STATE.lobKey; });
+  if(!o) return "ALL";
+  return o.key === "ALL" ? "ALL" : o.key.replace(/^(AGG|CLS|LOB):/, "");
+}
+
+/* ==========================================================================
+   15. render
+   ========================================================================== */
+function recompute(){
+  const M = STATE.model;
+  STATE.sel = { lobSet: currentLobSet(), basis: STATE.basis, branch: STATE.branch, cutoff: STATE.cutoff };
+  STATE.tables = buildTables(M, STATE.sel);
+  render();
+}
+
+function render(){
+  const M = STATE.model, T = STATE.tables;
+  const html = [];
+
+  html.push(renderMain(T));
+  html.push(renderChecks(M, T));
+  html.push(renderStep("Step 1 — Gross", "l1",
+    "Signed and unsigned gross premium, incurred claims, SIBNR and gross IBNR on both bases.",
+    T.t2, T2_COLS, 1));
+  html.push(renderStep("Step 2 — Net of external retro", "l2",
+    "Facultative, external quota share, XoL and reinstatement cessions taken off the gross position.",
+    T.t3, T3_COLS, 2));
+  html.push(renderStep("Step 3 — Net of internal quota share", "l3",
+    "The internal quota share applied to the net position, giving the retained net net reserves.",
+    T.t4, T4_COLS, 3));
+  html.push(renderXolMatrix(M));
+  html.push(renderParams(M));
+  html.push(renderData(M));
+
+  $("output").innerHTML = html.join("");
+  renderPriorChip();
+}
+
+function bandHead(spans){
+  return '<tr class="band"><th class="rowhead"></th>' + spans.map(function(s){
+    const cls = s.cls || BAND_CLASS[s.b];
+    return '<th class="band-' + cls + '" colspan="' + s.n + '">' + esc(s.l) + "</th>";
+  }).join("") + "</tr>";
+}
+
+/* the ladder's own column layout; the three delta columns appear only while a
+   previous-period ladder is loaded */
+const MAIN_LAYOUT = [
+  { k:"gPrem", l:"Premium ultimate", b:"g", first:true },
+  { k:"gInc",  l:"Incurred claims",  b:"g" },
+  { k:"gIbnr", l:"SIBNR + IBNR",     b:"g" },
+  { k:"gUlt",  l:"Claims ultimate",  b:"g" },
+  { k:"gulr",  l:"GULR",             b:"g", pct:true },
+  { k:"dGulr", l:"Δ GULR (%)",      b:"g", delta:true },
+  { k:"nPrem", l:"Premium ultimate", b:"mbe", first:true },
+  { k:"nInc",  l:"Incurred claims",  b:"mbe" },
+  { k:"nIbnr", l:"SIBNR + IBNR",     b:"mbe" },
+  { k:"nUlt",  l:"Claims ultimate",  b:"mbe" },
+  { k:"nulr",  l:"NULR",             b:"mbe", pct:true },
+  { k:"dNulr", l:"Δ NULR (%)",      b:"mbe", delta:true },
+  { k:"xPrem", l:"Premium ultimate", b:"stat", first:true },
+  { k:"xInc",  l:"Incurred claims",  b:"stat" },
+  { k:"xIbnr", l:"SIBNR + IBNR",     b:"stat" },
+  { k:"xUlt",  l:"Claims ultimate",  b:"stat" },
+  { k:"nnulr", l:"NNULR",            b:"stat", pct:true },
+  { k:"dNnulr",l:"Δ NNULR (%)",     b:"stat", delta:true }
+];
+function renderMain(T){
+  const rows = T.main.concat([Object.assign({ label: "Total" }, T.mainTotal)]).map(withDeltas);
+  const cols = STATE.prior ? MAIN_LAYOUT : MAIN_LAYOUT.filter(function(c){ return !c.delta; });
+  const n = STATE.prior ? 6 : 5;
+  const unitLbl = UNIT === 1 ? "EUR" : UNIT === 1000 ? "EUR thousands" : "EUR millions";
+  let h = '<section class="block"><div class="blockhead">' +
+    "<h2>" + esc(currentLobLabel()) + " &middot; " + esc(STATE.basis) + " &middot; " + (T.uk ? "UK branch" : "Total") + "</h2>" +
+    '<span class="note">' + unitLbl + " &middot; ratios on ultimate premium" +
+    (STATE.prior ? " &middot; &Delta; in % against " + esc(STATE.prior.name) : "") + "</span></div>";
+  h += '<div style="border:1px solid var(--rule);border-radius:8px;overflow:hidden"><div class="tscroll"><table class="grid">';
+  h += "<thead>" + bandHead([
+    { l:"Gross", b:"g", n:n },
+    { l:"Net before internal QS", b:"mbe", n:n },
+    { l:"Net after internal QS", b:"stat", n:n }
+  ]);
+  h += '<tr><th class="rowhead">UWY</th>' + cols.map(function(c){
+    return "<th" + (c.first ? ' class="sep-' + BAND_CLASS[c.b] + '"' : "") + ">" + esc(c.l) + "</th>";
+  }).join("") + "</tr></thead><tbody>";
+  for(const r of rows){
+    const isTot = r.label === "Total";
+    h += "<tr" + (isTot ? ' class="total"' : "") + '><td class="rowhead">' + esc(r.label) + "</td>";
+    for(const c of cols){
+      const v = r[c.k];
+      const cls = [];
+      if(c.first) cls.push("sep-" + BAND_CLASS[c.b]);
+      if(c.pct) cls.push("ratio");
+      if(c.delta) cls.push("delta", deltaClass(v));
+      h += '<td class="' + cls.join(" ") + '">' +
+           (c.delta ? fmtDelta(v) : (c.pct ? fmtPct(v) : fmtNum(v))) + "</td>";
+    }
+    h += "</tr>";
+  }
+  h += "</tbody></table></div></div></section>";
+  return h;
+}
+/* a loss ratio going up is a deterioration: increasing red, decreasing green */
+function deltaClass(v){
+  if(typeof v !== "number" || !isFinite(v) || Math.abs(v) < 0.00005) return "flat";
+  return v > 0 ? "up" : "down";
+}
+function fmtDelta(v){
+  if(typeof v !== "number" || !isFinite(v)) return '<span class="z">&mdash;</span>';
+  const pc = v * 100;
+  if(Math.abs(pc) < 0.05) return '<span class="z">0.0%</span>';
+  return (pc > 0 ? "+" : "−") + Math.abs(pc).toLocaleString("en-GB", { minimumFractionDigits:1, maximumFractionDigits:1 }) + "%";
+}
+
+/* Inside a step table the three sub-bands are Common / MBE / Statutory — a different
+   dimension from the gross-net-netnet layers, so only "Common" carries the step's layer
+   colour and the two basis groups stay neutral. */
+function renderStep(title, band, note, rows, cols, no){
+  const clsOf = function(b){ return b === "g" ? band : "neutral"; };
+  const bands = [];
+  for(const c of cols){
+    const last = bands[bands.length - 1];
+    if(last && last.b === c.b) last.n++;
+    else bands.push({ b:c.b, cls: clsOf(c.b), l: c.b === "g" ? "Common" : (c.b === "mbe" ? "MBE" : "Statutory"), n:1 });
+  }
+  const tot = {};
+  for(const c of cols) tot[c.k] = c.pct ? null : rows.reduce(function(a, r){ return a + N(r[c.k]); }, 0);
+
+  let h = '<section class="block"><details open class="fold ' + band + '"><summary>' +
+    '<span class="stepno ' + band + '">' + no + "</span>" + esc(title) +
+    '<span class="summ-sub">' + esc(note) + "</span></summary><div class=\"foldbody\">";
+  h += '<div class="tscroll"><table class="grid"><thead>' + bandHead(bands);
+  h += '<tr><th class="rowhead">UWY</th>' + cols.map(function(c){
+    return "<th" + (c.sep ? ' class="sep-' + band + '"' : "") + ">" + esc(c.l) + "</th>";
+  }).join("") + "</tr></thead><tbody>";
+  for(const r of rows){
+    h += '<tr><td class="rowhead">' + r.uwy + "</td>";
+    for(const c of cols){
+      const v = r[c.k];
+      const cls = [];
+      if(c.sep) cls.push("sep-" + band);
+      if(c.pct) cls.push("ratio");
+      h += '<td class="' + cls.join(" ") + '">' + (c.pct ? fmtPct(v) : fmtNum(v)) + "</td>";
+    }
+    h += "</tr>";
+  }
+  h += '<tr class="total"><td class="rowhead">Total</td>';
+  for(const c of cols){
+    const cls = [];
+    if(c.sep) cls.push("sep-" + band);
+    if(c.pct) cls.push("ratio");
+    h += '<td class="' + cls.join(" ") + '">' + (c.pct ? "" : fmtNum(tot[c.k])) + "</td>";
+  }
+  h += "</tr></tbody></table></div></div></details></section>";
+  return h;
+}
+
+/* ---------- reconciliation ---------- */
+function renderChecks(M, T){
+  const tol = 1;
+  const lobSet = STATE.sel.lobSet, bk = T.uk ? "UK" : "ALL";
+  const sum = function(tab, col){ return tab.reduce(function(a, r){ return a + N(r[col]); }, 0); };
+
+  const prodFH = allYears(M, lobSet, bk, "FH");
+  const prodFI = allYears(M, lobSet, bk, "FI");
+  const prodFJ = allYears(M, lobSet, bk, "FJ");
+  const prodFQ = allYears(M, lobSet, bk, "FQ");
+  const prodFR = allYears(M, lobSet, bk, "FR");
+  const prodFM = allYears(M, lobSet, bk, "FM");
+  const prodFV = allYears(M, lobSet, bk, "FV");
+  const prodFW = allYears(M, lobSet, bk, "FW");
+
+  const checks = [
+    ["Signed premium vs production",  sum(T.t2, "B") - prodFH],
+    ["Case reserves vs production",   sum(T.t2, "E") - prodFI],
+    ["Incurred claims vs production", sum(T.t2, "F") - prodFJ],
+    ["Gross ultimate identity",       sum(T.t2, "F") + sum(T.t2, "G") + sum(T.t2, "H") + sum(T.t2, "I") - sum(T.t2, "J")],
+    ["Ultimate premium identity",     sum(T.t2, "B") + sum(T.t2, "C") - sum(T.t2, "D")],
+    ["Net premium identity",          sum(T.t2, "D") - ["B","C","D","E","F","G","H","I"].reduce(function(a, c){ return a + sum(T.t3, c); }, 0) - sum(T.t3, "J")],
+    ["Net case reserves vs prod.",    sum(T.t3, "K") - prodFQ],
+    ["Net incurred vs production",    sum(T.t3, "L") - prodFR],
+    ["Net net premium identity",      sum(T.t3, "J") + sum(T.t3, "D") + sum(T.t3, "E") + sum(T.t3, "H") + sum(T.t3, "I")
+                                      - sum(T.t4, "B") - sum(T.t4, "C") - sum(T.t4, "D") - sum(T.t4, "E") - sum(T.t4, "F") - sum(T.t4, "G")
+                                      - sum(T.t4, "H")],
+    ["IntQS premium vs production",   sum(T.t4, "B") - prodFM],
+    ["Net net case res. vs prod.",    sum(T.t4, "I") - prodFV],
+    ["Net net incurred vs prod.",     sum(T.t4, "J") - prodFW],
+    ["Ladder ties to step tables",    T.mainTotal.gPrem - sum(T.t2, "D")]
+  ];
+  return '<section class="block"><div class="blockhead"><h2>Reconciliation</h2>' +
+    '<span class="note">the workbook&rsquo;s own check rows, recomputed &middot; tolerance ' + tol + ' EUR</span></div>' +
+    '<div style="border:1px solid var(--rule);border-radius:8px;overflow:hidden"><div class="checks">' +
+    checks.map(function(c){
+      const ok = Math.abs(c[1]) < tol;
+      return '<span class="check ' + (ok ? "pass" : "fail") + '"><b>' + esc(c[0]) + "</b><span>" +
+        (ok ? "0" : c[1].toLocaleString("en-GB", { maximumFractionDigits:2 })) + "</span></span>";
+    }).join("") + "</div></div></section>";
+}
+function allYears(M, lobSet, bk, col){
+  let t = 0;
+  for(let y = M.uwyFloor; y <= M.uwyMax; y++) t += M.pv(lobSet, y, bk, col);
+  return t;
+}
+
+/* ---------- XoL matrix ---------- */
+function renderXolMatrix(M){
+  const lobs = M.xolLobs.filter(Boolean);
+  const years = [];
+  for(let y = M.uwyFloor; y <= M.xolUwyTo; y++) years.push(y);
+  let h = '<section class="block"><details class="fold l2"><summary><span class="stepno l2">XoL</span>' +
+    'Net XoL premium by line of business and underwriting year' +
+    '<span class="summ-sub">retro register &rarr; office/LoB allocation &rarr; UWY, then spread over policies pro rata to signed premium</span>' +
+    '</summary><div class="foldbody"><div class="tscroll"><table class="grid"><thead><tr><th class="rowhead">UWY</th>' +
+    lobs.map(function(l){ return "<th>" + esc(l) + "</th>"; }).join("") + "<th>Total</th></tr></thead><tbody>";
+  for(const y of years){
+    let rowTot = 0;
+    let cells = "";
+    for(const l of lobs){
+      const v = M.xolMatrix.get(y + "|" + l) || 0;
+      rowTot += v;
+      cells += "<td>" + fmtNum(v) + "</td>";
+    }
+    h += '<tr><td class="rowhead">' + y + "</td>" + cells + "<td>" + fmtNum(rowTot) + "</td></tr>";
+  }
+  let gt = 0;
+  let totCells = "";
+  for(const l of lobs){
+    let c = 0;
+    for(const y of years) c += M.xolMatrix.get(y + "|" + l) || 0;
+    gt += c;
+    totCells += "<td>" + fmtNum(c) + "</td>";
+  }
+  h += '<tr class="total"><td class="rowhead">Total</td>' + totCells + "<td>" + fmtNum(gt) + "</td></tr>";
+  h += "</tbody></table></div></div></details></section>";
+  return h;
+}
+
+/* ---------- parameters ---------- */
+function renderParams(M){
+  const P = M.params;
+  const pct = function(v){ return (v * 100).toFixed(2) + "%"; };
+  let h = '<section class="block"><details class="fold l3"><summary><span class="stepno l3">P</span>Model parameters' +
+    '<span class="summ-sub">read from the retro-parameter sheet; the manual adjustments are listed explicitly</span></summary>' +
+    '<div class="foldbody"><div class="pgrid">';
+
+  h += '<div class="pcard"><h4>Internal quota share</h4><p class="hint">Share of future IBNR ceded internally. Drives the net-net IBNR split and the 1&nbsp;&minus;&nbsp;share applied to XoL premium and reinstatements.</p>' +
+    '<table class="mini"><tbody><tr><td>Ceded internally</td><td>' + pct(P.intQS) + "</td></tr>" +
+    "<tr><td>Retained</td><td>" + pct(M.cede) + "</td></tr></tbody></table></div>";
+
+  const eq = Array.from(P.extQS.entries()).sort(function(a, b){ return a[0] - b[0]; });
+  h += '<div class="pcard"><h4>Historical external quota share</h4><p class="hint">Applied to Energy business only.</p><table class="mini"><tbody>' +
+    eq.map(function(e){ return "<tr><td>" + e[0] + "</td><td>" + pct(e[1]) + "</td></tr>"; }).join("") + "</tbody></table></div>";
+
+  h += '<div class="pcard"><h4>XoL gross loss ratio &amp; reinstatement</h4><p class="hint">Applied to unsigned IBNR. Bonds, financial lines and marine are keyed by LoB code; everything else by class, falling back to <code>Other</code>.</p>' +
+    '<table class="mini"><thead><tr><th>Key</th><th>XoL GLR</th><th>Reinst.</th></tr></thead><tbody>' +
+    Array.from(P.glrByClass.keys()).map(function(k){
+      return "<tr><td>" + esc(k) + "</td><td>" + pct(P.glrByClass.get(k)) + "</td><td>" + pct(P.reinstByClass.get(k) || 0) + "</td></tr>";
+    }).join("") +
+    Array.from(P.glrByLob.keys()).map(function(k){
+      return "<tr><td>" + esc(k) + "</td><td>" + pct(P.glrByLob.get(k)) + "</td><td>" + pct(P.reinstByLob.get(k) || 0) + "</td></tr>";
+    }).join("") + "</tbody></table></div>";
+
+  const yrs = P.retroYears;
+  h += '<div class="pcard" style="grid-column:1/-1"><h4>Retro expense reallocation</h4><p class="hint">Multiplies the allocated XoL premium from 2019 onward. Classes with no row here get a factor of zero.</p>' +
+    '<table class="mini"><thead><tr><th>Class</th>' + yrs.map(function(y){ return "<th>" + y + "</th>"; }).join("") + "</tr></thead><tbody>" +
+    Array.from(P.retro.keys()).map(function(cls){
+      const m = P.retro.get(cls);
+      return "<tr><td>" + esc(cls) + "</td>" + yrs.map(function(y){ return "<td>" + pct(m.get(y) || 0) + "</td>"; }).join("") + "</tr>";
+    }).join("") + "</tbody></table></div>";
+
+  h += '<div class="pcard" style="grid-column:1/-1"><h4>Manual adjustments carried over from the workbook</h4>' +
+    '<p class="hint">These are hand-entered in <code>XoL UWY</code> rather than derived, so they are surfaced here rather than hidden. Read from the sheet when it is present in the input, otherwise the values cached in the tool are used.</p>' +
+    '<table class="mini"><thead><tr><th>Moscow Property redistribution</th>' +
+    Array.from(M.moscow.DCPRO.keys()).map(function(k){ return "<th>" + (k === M.uwyFloor ? "&le;" + k : k) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+    ["DCPRO","PRTOT"].map(function(w){
+      return "<tr><td>" + w + "</td>" + Array.from(M.moscow[w].values()).map(function(v){
+        return "<td>" + v.toLocaleString("en-GB", { maximumFractionDigits:0 }) + "</td>";
+      }).join("") + "</tr>";
+    }).join("") + "</tbody></table>" +
+    '<table class="mini" style="margin-top:9px"><thead><tr><th>XoL matrix rule override</th><th>Behaviour</th></tr></thead><tbody>' +
+    '<tr><td>DCENR</td><td>&le;' + M.uwyFloor + " takes " + M.uwyFloor + "+" + (M.uwyFloor + 1) + ", later years zero</td></tr>" +
+
+    "<tr><td>DCFIL</td><td>no discontinued pooling &mdash; allocated year taken directly</td></tr>" +
+    "<tr><td>DCPRO</td><td>pooled on 2020 only, cut-off 2020, plus the Moscow adjustment</td></tr>" +
+    "<tr><td>PRTOT</td><td>allocated year taken directly, plus the Moscow adjustment</td></tr>" +
+    "<tr><td>other DC&hellip;</td><td>pooled on 2024&ndash;" + M.xolUwyTo + ", cut-off 2024</td></tr>" +
+    "<tr><td>all others</td><td>allocated year taken directly</td></tr>" +
+    "</tbody></table></div>";
+
+  /* office -> LoB allocation cells that the workbook overrides by hand */
+  if(M.blockASheetCells){
+    h += '<div class="pcard" style="grid-column:1/-1"><h4>Hand-set office &rarr; LoB allocation cells</h4>' +
+      '<p class="hint">' + M.blockASheetCells.toLocaleString("en-GB") + " allocation cells were taken from the <code>XoL UWY</code> sheet. " +
+      (M.manualA.length
+        ? "These " + M.manualA.length + " differ from the share implied by production GWP &mdash; they are typed over in the workbook (the Bonds book moving between Madrid and Italy, and one Life cell). Without them the net XoL premium splits differently by LoB."
+        : "None of them differ from the share implied by production GWP.") + "</p>";
+    if(M.manualA.length){
+      h += '<table class="mini"><thead><tr><th>Office &middot; UWY &middot; LoB</th><th>Sheet</th><th>From GWP</th></tr></thead><tbody>' +
+        M.manualA.map(function(m){
+          const p = m.key.split("|");
+          return "<tr><td>" + esc(p[0]) + " &middot; " + esc(p[1]) + " &middot; " + esc(p[2]) + "</td><td>" +
+            (m.sheet * 100).toFixed(1) + "%</td><td>" + (m.computed * 100).toFixed(2) + "%</td></tr>";
+        }).join("") + "</tbody></table>";
+    }
+    h += "</div>";
+  }
+
+  h += "</div></div></details></section>";
+  return h;
+}
+
+/* ---------- data / diagnostics ---------- */
+function renderData(M){
+  const rep = STATE.loc.report.filter(function(r){ return r.hit; });
+  const counts = {
+    lobs: STATE.src.lobs.length, excl: STATE.src.excl.length, prod: STATE.src.prod.length,
+    abe: STATE.src.abe.length, eibnr: STATE.src.eibnr.length, xolp: STATE.src.xolp.length
+  };
+  let h = '<section class="block"><details class="fold l1"><summary><span class="stepno l1">D</span>Input data' +
+    '<span class="summ-sub">' + counts.prod.toLocaleString("en-GB") + " production rows &middot; " +
+    counts.eibnr.toLocaleString("en-GB") + " earned-IBNR rows &middot; " + M.treaties.length + " retro treaties</span></summary>" +
+    '<div class="foldbody"><div class="pgrid">';
+
+  h += '<div class="pcard"><h4>Sheets used</h4><table class="mini"><tbody>' +
+    rep.map(function(r){
+      const n = { lobs:counts.lobs, excl:counts.excl, prod:counts.prod, abe:counts.abe, eibnr:counts.eibnr, xolp:counts.xolp }[r.key];
+      return "<tr><td>" + esc(r.hit.sheet) + "</td><td>" + (n === undefined ? "&mdash;" : n.toLocaleString("en-GB") + " rows") + "</td></tr>";
+    }).join("") + "</tbody></table></div>";
+
+  h += '<div class="pcard"><h4>Scope</h4><table class="mini"><tbody>' +
+    "<tr><td>UWY range shown</td><td>" + M.uwyFloor + "&ndash;" + M.uwyMax + "</td></tr>" +
+    "<tr><td>Earliest UWY in data</td><td>" + STATE.minProdUwy + "</td></tr>" +
+    "<tr><td>Collapsed into first row</td><td>&le;" + STATE.cutoff + "</td></tr>" +
+    "<tr><td>Policies excluded</td><td>" + STATE.src.excl.length + "</td></tr>" +
+    "<tr><td>Lines of business</td><td>" + M.lobs.length + "</td></tr>" +
+    "<tr><td>SIBNR policies</td><td>" + M.sibnr.length + "</td></tr>" +
+    "</tbody></table></div>";
+
+  h += '<div class="pcard"><h4>Grand totals, all LoB, all branches</h4><table class="mini"><tbody>' +
+    [["Gross signed premium","FH"],["Gross incurred","FJ"],["Net signed premium","FN"],
+     ["Net XoL premium","FO"],["Net incurred","FR"],["Net net incurred","FW"],
+     ["Gross earned IBNR (MBE)","GD"],["Gross earned IBNR (Stat)","FZ"]].map(function(p){
+      return "<tr><td>" + p[0] + "</td><td>" + M.totals[p[1]].toLocaleString("en-GB", { maximumFractionDigits:0 }) + "</td></tr>";
+    }).join("") + "</tbody></table></div>";
+
+  /* where each parameter block was found, so a shifted workbook layout is visible */
+  h += '<div class="pcard" style="grid-column:1/-1"><h4>Workbook layout read</h4>' +
+    '<p class="hint">Located by label in <code>' + esc(PARAM_SHEET) + '</code>, <code>XoL UWY</code> and <code>XoL Premiums</code>. Check these after the workbook has been restructured.</p>' +
+    '<ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted)">' +
+    M.layout.map(function(w){ return "<li>" + esc(w) + "</li>"; }).join("") + "</ul></div>";
+
+  if(M.warn.length){
+    h += '<div class="pcard" style="grid-column:1/-1"><h4>Data notes</h4><ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted)">' +
+      M.warn.slice(0, 12).map(function(w){ return "<li>" + esc(w) + "</li>"; }).join("") +
+      (M.warn.length > 12 ? "<li>&hellip; and " + (M.warn.length - 12) + " more</li>" : "") + "</ul></div>";
+  }
+  h += "</div></div></details></section>";
+  return h;
+}
+
+/* ==========================================================================
+   16. comparison with a previously exported ladder
+   ========================================================================== */
+const LADDER_KEYS = [
+  { k:"gPrem", l:"Premium ultimate" }, { k:"gInc", l:"Incurred claims" },
+  { k:"gIbnr", l:"SIBNR + IBNR" },     { k:"gUlt", l:"Claims ultimate" },
+  { k:"gulr",  l:"GULR", pct:true },   { k:"dGulr", l:"Δ GULR", delta:true },
+  { k:"nPrem", l:"Premium ultimate" }, { k:"nInc", l:"Incurred claims" },
+  { k:"nIbnr", l:"SIBNR + IBNR" },     { k:"nUlt", l:"Claims ultimate" },
+  { k:"nulr",  l:"NULR", pct:true },   { k:"dNulr", l:"Δ NULR", delta:true },
+  { k:"xPrem", l:"Premium ultimate" }, { k:"xInc", l:"Incurred claims" },
+  { k:"xIbnr", l:"SIBNR + IBNR" },     { k:"xUlt", l:"Claims ultimate" },
+  { k:"nnulr", l:"NNULR", pct:true },  { k:"dNnulr", l:"Δ NNULR", delta:true }
+];
+const LADDER_BANDS = [
+  { l:"Gross", cls:"l1", n:6 },
+  { l:"Net before internal QS", cls:"l2", n:6 },
+  { l:"Net after internal QS", cls:"l3", n:6 }
+];
+function ladderCols(){
+  return STATE.prior ? LADDER_KEYS : LADDER_KEYS.filter(function(c){ return !c.delta; });
+}
+function ladderBands(){
+  const n = STATE.prior ? 6 : 5;
+  return LADDER_BANDS.map(function(b){ return { l:b.l, cls:b.cls, n:n }; });
+}
+
+const normLabel = function(s){ return String(s).replace(/^\s*(<=|≤)\s*/, "<=").trim(); };
+const branchLabel = function(uk){ return uk ? "UK branch" : "Total"; };
+
+/* A name alone is not unique — DCTOT is both an aggregate and a line of business — so the
+   selection level is part of the key. Files without a Level column (a single-view export)
+   fall back to the name-only key, which is unambiguous for a one-combination file. */
+function levelOf(lobKey){
+  if(lobKey === "ALL") return "All";
+  if(lobKey.indexOf("AGG:") === 0) return "Aggregate";
+  if(lobKey.indexOf("CLS:") === 0) return "Class";
+  return "LoB";
+}
+function priorKey(lob, level, basis, branch, rowLabel){
+  return String(lob).toUpperCase() + "|" + String(level).toUpperCase() + "|" +
+         String(basis).toUpperCase() + "|" + String(branch).toUpperCase() + "|" + normLabel(rowLabel);
+}
+function priorKeyLoose(lob, basis, branch, rowLabel){
+  return String(lob).toUpperCase() + "|" + String(basis).toUpperCase() + "|" +
+         String(branch).toUpperCase() + "|" + normLabel(rowLabel);
+}
+function priorRatios(rowLabel){
+  if(!STATE.prior) return null;
+  const lob = currentLobLabel(), basis = STATE.basis, branch = branchLabel(STATE.tables.uk);
+  const exact = STATE.prior.rows.get(priorKey(lob, levelOf(STATE.lobKey), basis, branch, rowLabel));
+  if(exact) return exact;
+  return STATE.prior.loose.get(priorKeyLoose(lob, basis, branch, rowLabel)) || null;
+}
+/* difference of the two ratios, as a fraction (so 0.024 = +2.4%) */
+function deltaOf(rowLabel, key, current){
+  const p = priorRatios(rowLabel);
+  if(!p) return null;
+  const was = p[key];
+  if(typeof was !== "number" || !isFinite(was) || typeof current !== "number" || !isFinite(current)) return null;
+  return current - was;
+}
+function withDeltas(row){
+  if(!STATE.prior) return row;
+  const out = Object.assign({}, row);
+  out.dGulr  = deltaOf(row.label, "gulr",  row.gulr);
+  out.dNulr  = deltaOf(row.label, "nulr",  row.nulr);
+  out.dNnulr = deltaOf(row.label, "nnulr", row.nnulr);
+  return out;
+}
+
+/* ---- read a previously exported ladder workbook ---- */
+async function loadPrior(fileList){
+  const files = Array.from(fileList).filter(function(f){ return /\.(xlsx|xlsm)$/i.test(f.name); });
+  if(!files.length) return;
+  const f = files[0];
+  try {
+    const wb = openWorkbook(await f.arrayBuffer());
+    const sheetName = wb.sheetNames.filter(function(n){ return normName(n) === "ladder"; })[0] || wb.sheetNames[0];
+    const rows = wb.readSheet(sheetName, null, 1) || [];
+    const byRow = new Map();
+    for(const r of rows) byRow.set(r.__row, r);
+
+    /* the header row is the one carrying "UWY" */
+    let headRow = null;
+    for(const r of rows){
+      for(const k in r){
+        if(k !== "__row" && String(r[k]).trim().toUpperCase() === "UWY"){ headRow = r; break; }
+      }
+      if(headRow) break;
+    }
+    if(!headRow) throw new Error("no header row containing 'UWY' was found on sheet '" + sheetName + "'.");
+
+    const colOf = {};
+    for(const k in headRow){
+      if(k === "__row") continue;
+      const h = String(headRow[k]).trim().toUpperCase();
+      if(!colOf[h]) colOf[h] = k;
+    }
+    const need = ["UWY","GULR","NULR","NNULR"];
+    const absent = need.filter(function(h){ return !colOf[h]; });
+    if(absent.length) throw new Error("the sheet has no " + absent.join(", ") + " column. Export a ladder from this tool and load that file.");
+
+    /* keys either sit in their own columns (all-combinations export) or in the subtitle (single view) */
+    let fixedLob = null, fixedBasis = null, fixedBranch = null;
+    if(!colOf["LOB"] || !colOf["BASIS"] || !colOf["BRANCH"]){
+      const sub = byRow.get(headRow.__row - 3) || byRow.get(2);
+      const txt = sub ? Object.keys(sub).filter(k => k !== "__row").map(k => sub[k]).join(" ") : "";
+      const bits = String(txt).split("·").map(function(s){ return s.trim(); });
+      if(bits.length >= 3){ fixedLob = bits[0]; fixedBasis = bits[1]; fixedBranch = bits[2]; }
+      if(!fixedLob) throw new Error("could not tell which LoB / basis / branch the file covers. Use the all-combinations export as the comparison file.");
+    }
+
+    const map = new Map(), loose = new Map(), looseSeen = new Map();
+    const combos = new Set();
+    const cuts = new Set();
+    let lastRow = headRow.__row;
+    for(const row of rows) if(row.__row > lastRow) lastRow = row.__row;
+    for(let r = headRow.__row + 1; r <= lastRow; r++){
+      const row = byRow.get(r);
+      if(!row) continue;
+      const label = row[colOf["UWY"]];
+      if(label === undefined || String(label).trim() === "") continue;
+      const lob    = fixedLob    !== null ? fixedLob    : row[colOf["LOB"]];
+      const basis  = fixedBasis  !== null ? fixedBasis  : row[colOf["BASIS"]];
+      const branch = fixedBranch !== null ? fixedBranch : row[colOf["BRANCH"]];
+      if(lob === undefined || basis === undefined || branch === undefined) continue;
+      const level = colOf["LEVEL"] && row[colOf["LEVEL"]] !== undefined ? row[colOf["LEVEL"]] : "";
+      const vals = {
+        gulr:  N(row[colOf["GULR"]]),
+        nulr:  N(row[colOf["NULR"]]),
+        nnulr: N(row[colOf["NNULR"]])
+      };
+      map.set(priorKey(lob, level, basis, branch, label), vals);
+      /* the name-only key is kept only while it stays unambiguous */
+      const lk = priorKeyLoose(lob, basis, branch, label);
+      const seenLevel = looseSeen.get(lk);
+      if(seenLevel === undefined){ looseSeen.set(lk, String(level)); loose.set(lk, vals); }
+      else if(seenLevel !== String(level)){ loose.delete(lk); }
+      combos.add(String(lob) + "|" + String(level) + "|" + String(basis) + "|" + String(branch));
+      const m = normLabel(label).match(/^<=(\d{4})$/);
+      if(m) cuts.add(+m[1]);
+    }
+    if(!map.size) throw new Error("no ladder rows were found below the header.");
+
+    STATE.prior = {
+      name: f.name, rows: map, loose: loose, combos: combos.size,
+      cutoffs: Array.from(cuts).sort(),
+      asOf: readPriorStamp(byRow)
+    };
+    $("fatal").innerHTML = "";
+    if(STATE.model) recompute(); else renderPriorChip();
+  } catch(err){
+    STATE.prior = null;
+    $("fatal").innerHTML = '<div class="banner bad"><b>Could not read the comparison file.</b><br>' +
+      esc(err && err.message ? err.message : String(err)) + "</div>";
+    renderPriorChip();
+  }
+}
+function readPriorStamp(byRow){
+  const r = byRow.get(2);
+  if(!r) return "";
+  const txt = Object.keys(r).filter(k => k !== "__row").map(k => r[k]).join(" ");
+  const m = String(txt).match(/generated\s+(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : "";
+}
+function clearPrior(){
+  STATE.prior = null;
+  $("filePrior").value = "";
+  $("fatal").innerHTML = "";
+  if(STATE.model) recompute(); else renderPriorChip();
+}
+function renderPriorChip(){
+  const box = $("priorChip");
+  if(!STATE.prior){ box.innerHTML = ""; box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  const p = STATE.prior;
+  const cutWarn = (p.cutoffs.length && p.cutoffs.indexOf(STATE.cutoff) < 0)
+    ? ' <span class="warnbit">collapse year in that file is &le;' + p.cutoffs.join(", &le;") + ", current view uses &le;" + STATE.cutoff + "</span>"
+    : "";
+  box.innerHTML = '<span class="priorlabel">Comparing against</span> <b>' + esc(p.name) + "</b>" +
+    (p.asOf ? " <span class=\"dim\">generated " + esc(p.asOf) + "</span>" : "") +
+    ' <span class="dim">&middot; ' + p.combos + " combination" + (p.combos === 1 ? "" : "s") + "</span>" +
+    cutWarn + ' <button class="btn tiny" id="btnClearPrior">Clear</button>';
+  $("btnClearPrior").addEventListener("click", clearPrior);
+}
+
+/* ==========================================================================
+   17. export to .xlsx
+   ========================================================================== */
+const BAND_STYLE = { l1: XS.bandL1, l2: XS.bandL2, l3: XS.bandL3, neutral: XS.bandNeutral };
+
+/* deltas share deltaClass() with the page, so both agree on red = up, green = down */
+function styleFor(col, isTotal, v){
+  if(col.delta){
+    const dir = deltaClass(v);
+    if(dir === "up")   return isTotal ? XS.deltaUpTotal   : XS.deltaUp;
+    if(dir === "down") return isTotal ? XS.deltaDownTotal : XS.deltaDown;
+    return isTotal ? XS.deltaTotal : XS.delta;
+  }
+  if(col.pct)   return isTotal ? XS.pctTotal   : XS.pct;
+  return isTotal ? XS.moneyTotal : XS.money;
+}
+
+/* header block, colour band row, column headers, data, optional total row */
+function xlSheet(opts){
+  const rows = [];
+  const keyN = opts.keyCols ? opts.keyCols.length : 0;
+  rows[0] = [{ str: opts.title, s: XS.title }];
+  rows[1] = [{ str: opts.subtitle, s: XS.label }];
+  rows[2] = null;
+
+  const bandRow = [];
+  const merges = [];
+  for(let i = 0; i < keyN; i++) bandRow[i] = { str: "", s: XS.general };
+  let at = keyN;
+  opts.bands.forEach(function(b){
+    bandRow[at] = { str: b.l, s: BAND_STYLE[b.cls] };
+    for(let i = 1; i < b.n; i++) bandRow[at + i] = { str: "", s: BAND_STYLE[b.cls] };
+    if(b.n > 1) merges.push(idxToCol(at) + "4:" + idxToCol(at + b.n - 1) + "4");
+    at += b.n;
+  });
+  rows[3] = bandRow;
+
+  const head = [];
+  (opts.keyCols || []).forEach(function(k, i){ head[i] = { str: k, s: XS.colHeadLeft }; });
+  opts.cols.forEach(function(c, i){ head[keyN + i] = { str: c.l, s: XS.colHead }; });
+  rows[4] = head;
+
+  opts.data.forEach(function(r, ri){
+    const line = [];
+    (r.keys || []).forEach(function(v, i){ line[i] = { str: String(v), s: r.isTotal ? XS.rowHeadTotal : XS.rowHead }; });
+    opts.cols.forEach(function(c, i){
+      const v = r.values[i];
+      line[keyN + i] = (typeof v === "number" && isFinite(v))
+        ? { v: v, s: styleFor(c, r.isTotal, v) }
+        : (r.isTotal ? { s: styleFor(c, true) } : null);
+    });
+    rows[5 + ri] = line;
+  });
+
+  const widths = [];
+  (opts.keyCols || []).forEach(function(k){ widths.push(Math.max(10, k.length + 3)); });
+  opts.cols.forEach(function(c){ widths.push(Math.max(11, Math.min(20, c.l.length + 2))); });
+  return { name: opts.name, rows: rows, merges: merges, colWidths: widths, freeze: { x: Math.max(1, keyN), y: 5 } };
+}
+
+function download(bytes, name){
+  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+const stampToday = function(){ return new Date().toISOString().slice(0, 10); };
+
+/* ---- the current view: ladder plus the three step tables ---- */
+function exportXlsx(){
+  const T = STATE.tables;
+  const lob = currentLobLabel(), branch = branchLabel(T.uk), stamp = stampToday();
+  const subtitle = lob + "  ·  " + STATE.basis + "  ·  " + branch + "  ·  values in EUR m  ·  generated " + stamp;
+  const cols = ladderCols();
+
+  const ladder = xlSheet({
+    name: "Ladder", title: "Reserve netting ladder", subtitle: subtitle,
+    keyCols: ["UWY"], bands: ladderBands(), cols: cols,
+    data: T.main.map(function(r){
+      const d = withDeltas(r);
+      return { keys: [r.label], values: cols.map(function(c){ return d[c.k]; }) };
+    }).concat([(function(){
+      const d = withDeltas(Object.assign({ label: "Total" }, T.mainTotal));
+      return { keys: ["Total"], values: cols.map(function(c){ return d[c.k]; }), isTotal: true };
+    })()])
+  });
+
+  function stepSheet(name, title, layer, tab, colSpec){
+    const bands = [];
+    colSpec.forEach(function(c){
+      const last = bands[bands.length - 1];
+      const label = c.b === "g" ? "Common" : (c.b === "mbe" ? "MBE" : "Statutory");
+      if(last && last.l === label) last.n++;
+      else bands.push({ l: label, cls: c.b === "g" ? layer : "neutral", n: 1 });
+    });
+    return xlSheet({
+      name: name, title: title, subtitle: subtitle,
+      keyCols: ["UWY"], bands: bands, cols: colSpec,
+      data: tab.map(function(r){ return { keys: [r.uwy], values: colSpec.map(function(c){ return r[c.k]; }) }; })
+        .concat([{ keys: ["Total"], isTotal: true, values: colSpec.map(function(c){
+          return c.pct ? null : tab.reduce(function(a, r){ return a + N(r[c.k]); }, 0);
+        }) }])
+    });
+  }
+
+  download(buildXlsx([
+    ladder,
+    stepSheet("Step 1 - Gross", "Step 1 — Gross", "l1", T.t2, T2_COLS),
+    stepSheet("Step 2 - Net", "Step 2 — Net of external retro", "l2", T.t3, T3_COLS),
+    stepSheet("Step 3 - Net net", "Step 3 — Net of internal quota share", "l3", T.t4, T4_COLS)
+  ]), "netting_" + lob + "_" + STATE.basis + "_" + (T.uk ? "UK" : "Total") + "_" + stamp + ".xlsx");
+}
+
+/* ---- every LoB on both bases and both branches, ladder only ---- */
+async function exportAllXlsx(){
+  const M = STATE.model;
+  const cols = ladderCols();
+  const stamp = stampToday();
+  const data = [];
+  const combos = [];
+  STATE.lobOptions.forEach(function(o){
+    ["MBE","Stat"].forEach(function(basis){
+      ["ALL","UK"].forEach(function(branch){ combos.push({ o:o, basis:basis, branch:branch }); });
+    });
+  });
+
+  /* the whole batch is only a few hundred milliseconds, so yield once to paint the
+     message rather than on every iteration */
+  setProg(0.15, "Building " + combos.length + " ladders …");
+  await tick();
+
+  const keep = { lobKey: STATE.lobKey, basis: STATE.basis, branch: STATE.branch };
+  for(let i = 0; i < combos.length; i++){
+    const c = combos[i];
+    /* deltas are keyed on the selection, so drive it through the same state the view uses */
+    STATE.lobKey = c.o.key; STATE.basis = c.basis; STATE.branch = c.branch;
+    STATE.sel = { lobSet: c.o.set, basis: c.basis, branch: c.branch, cutoff: STATE.cutoff };
+    const T = buildTables(M, STATE.sel);
+    STATE.tables = T;
+    const lobName = c.o.key === "ALL" ? "ALL" : c.o.key.replace(/^(AGG|CLS|LOB):/, "");
+    const kind = c.o.key === "ALL" ? "All" : (c.o.key.indexOf("AGG:") === 0 ? "Aggregate"
+               : (c.o.key.indexOf("CLS:") === 0 ? "Class" : "LoB"));
+    const br = branchLabel(c.branch === "UK");
+    T.main.concat([Object.assign({ label: "Total" }, T.mainTotal)]).forEach(function(r){
+      const d = withDeltas(r);
+      data.push({
+        keys: [lobName, kind, c.basis, br, r.label],
+        isTotal: r.label === "Total",
+        values: cols.map(function(k){ return d[k.k]; })
+      });
+    });
+  }
+  STATE.lobKey = keep.lobKey; STATE.basis = keep.basis; STATE.branch = keep.branch;
+  recompute();
+
+  const sheet = xlSheet({
+    name: "Ladder",
+    title: "Reserve netting ladder — all combinations",
+    subtitle: combos.length + " combinations  ·  values in EUR m  ·  UWY collapsed up to " + STATE.cutoff +
+              "  ·  generated " + stamp +
+              (STATE.prior ? "  ·  deltas vs " + STATE.prior.name : ""),
+    keyCols: ["LoB","Level","Basis","Branch","UWY"],
+    bands: ladderBands(), cols: cols, data: data
+  });
+  hideProg();
+  download(buildXlsx([sheet]), "netting_all_combinations_" + stamp + ".xlsx");
+}
+/* ==========================================================================
+   17. wiring
+   ========================================================================== */
+(function(){
+  const drop = $("loader");
+  ["dragenter","dragover"].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add("hot"); });
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); if(ev === "dragleave" && e.relatedTarget) return; drop.classList.remove("hot"); });
+  });
+  document.addEventListener("drop", function(e){
+    e.preventDefault();
+    if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+  });
+  $("btnPick").addEventListener("click", function(){ $("filePick").click(); });
+  $("filePick").addEventListener("change", function(e){ if(e.target.files.length) loadFiles(e.target.files); });
+  $("btnReload").addEventListener("click", function(){
+    $("loader").classList.remove("hidden");
+    $("output").classList.add("hidden");
+    $("controls").classList.add("hidden");
+    $("filePick").value = "";
+  });
+  $("btnExport").addEventListener("click", exportXlsx);
+  $("btnExportAll").addEventListener("click", exportAllXlsx);
+  $("btnPrior").addEventListener("click", function(){ $("filePrior").click(); });
+  $("filePrior").addEventListener("change", function(e){ if(e.target.files.length) loadPrior(e.target.files); });
+  $("btnTheme").addEventListener("click", function(){
+    const cur = document.documentElement.getAttribute("data-theme");
+    const dark = cur ? cur === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  });
+
+  $("selLob").addEventListener("change", function(e){ STATE.lobKey = e.target.value; recompute(); });
+  $("selUnit").addEventListener("change", function(e){ UNIT = +e.target.value; render(); });
+  $("inpCutoff").addEventListener("change", function(e){
+    const v = Math.round(+e.target.value);
+    if(!isFinite(v)) return;
+    STATE.cutoff = Math.max(STATE.model.uwyFloor, Math.min(STATE.model.uwyMax, v));
+    e.target.value = STATE.cutoff;
+    recompute();
+  });
+  function seg(id, key){
+    $(id).addEventListener("click", function(e){
+      const b = e.target.closest("button");
+      if(!b) return;
+      Array.from($(id).querySelectorAll("button")).forEach(function(x){ x.setAttribute("aria-pressed", String(x === b)); });
+      STATE[key] = b.dataset.v;
+      recompute();
+    });
+  }
+  seg("segType", "basis");
+  seg("segBranch", "branch");
+})();
+
+</script>
+
+</body>
+</html>

@@ -25,8 +25,14 @@ Single-file HTML tool (`netting_tool.html`) that rebuilds the reserve netting la
 
 The UK file uses the export layout: a header row with `LoB`, `Level`, `Basis`, `Branch`, `UWY`,
 `GULR`, `NULR`, `NNULR` (other columns are ignored, non-UK rows are skipped).
-`inputs/Q2_UK_presented.xlsx` is the Q2 2026 one: ALL, DCTOT, ENTOT and PRTOT, MBE, UK branch,
-backed out of `analyses/netting_all_combinations_Q3vsQ2_UKQ2presented.xlsx` as Q3 ratio − Δ.
+`inputs/Q2_UK_presented.xlsx` is the Q2 2026 one: ALL, DCTOT, ENTOT and PRTOT, MBE, UK branch, with
+premium / incurred / SIBNR + IBNR / claims ultimate and the ratios for Gross, Net before and Net after
+internal QS. It is copied from sheet `ResultsUK_Q` of
+`202606/02_ABE&MBE_Proposals/NettingTool_v0.22_2026Q2_manual correction DBLIF_UK.xlsm`, which reproduces
+every figure of the Gross vs Net tables in `ReservingPresentation_202606_UK.pptx`. The same file is the
+Q-1 input (`--netting-prior`) of the ResCo deck builder for the UK "Profit (loss) movement QoQ" boxes,
+which need the amounts, not only the ratios. From Q4 2026 on, the Q-1 file is simply the Q3 export of
+this tool, unless policies move between UK and Lux again.
 
 ## Check done for Q3 2026
 

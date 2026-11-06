@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Netting tool v3</title>
+<title>Netting tool v3.1</title>
 <style>
 :root{color-scheme:light}
 body{margin:0;background:#fafafa;color:#0f0f0f;
@@ -370,6 +370,7 @@ footer.foot{max-width:1500px;margin:44px auto 0;padding:16px 20px 0;border-top:1
       <button class="btn" id="btnReload">Load other files</button>
       <button class="btn" id="btnPrior">Compare period&hellip;</button>
       <input type="file" id="filePrior" accept=".xlsx,.xlsm" class="hidden">
+      <input type="file" id="filePriorUk" accept=".xlsx,.xlsm" class="hidden">
       <button class="btn" id="btnExportAll" disabled>Export all combinations</button>
       <button class="btn primary" id="btnExport" disabled>Export this view</button>
     </div>
@@ -2088,7 +2089,7 @@ const BAND_CLASS = { g:"l1", mbe:"l2", stat:"l3" };
    ========================================================================== */
 const STATE = {
   books: [], src: null, model: null, sel: null,
-  basis: "MBE", branch: "ALL", lobKey: "ALL", cutoff: null, tables: null, lobOptions: [], prior: null
+  basis: "MBE", branch: "ALL", lobKey: "ALL", cutoff: null, tables: null, lobOptions: [], prior: null, priorUk: null
 };
 
 const $ = function(id){ return document.getElementById(id); };
@@ -2339,7 +2340,7 @@ function renderMain(T){
   let h = '<section class="block"><div class="blockhead">' +
     "<h2>" + esc(currentLobLabel()) + " &middot; " + esc(STATE.basis) + " &middot; " + (T.uk ? "UK branch" : "Total") + "</h2>" +
     '<span class="note">' + unitLbl + " &middot; ratios on ultimate premium" +
-    (STATE.prior ? " &middot; &Delta; in % against " + esc(STATE.prior.name) : "") + "</span></div>";
+    (STATE.prior ? " &middot; &Delta; in % against " + esc(priorSource().name) : "") + "</span></div>";
   h += '<div style="border:1px solid var(--rule);border-radius:8px;overflow:hidden"><div class="tscroll"><table class="grid">';
   h += "<thead>" + bandHead([
     { l:"Gross", b:"g", n:n },
@@ -2671,12 +2672,28 @@ function priorKeyLoose(lob, basis, branch, rowLabel){
   return String(lob).toUpperCase() + "|" + String(basis).toUpperCase() + "|" +
          String(branch).toUpperCase() + "|" + normLabel(rowLabel);
 }
-function priorRatios(rowLabel){
-  if(!STATE.prior) return null;
-  const lob = currentLobLabel(), basis = STATE.basis, branch = branchLabel(STATE.tables.uk);
-  const exact = STATE.prior.rows.get(priorKey(lob, levelOf(STATE.lobKey), basis, branch, rowLabel));
+function lookupPrior(p, lob, level, basis, branch, rowLabel){
+  const exact = p.rows.get(priorKey(lob, level, basis, branch, rowLabel));
   if(exact) return exact;
-  return STATE.prior.loose.get(priorKeyLoose(lob, basis, branch, rowLabel)) || null;
+  return p.loose.get(priorKeyLoose(lob, basis, branch, rowLabel)) || null;
+}
+/* The UK branch can be compared against a file of its own: the Q-1 figures as presented in the
+   UK deck, when policies have moved between UK and Lux since then. For every UK view that file
+   covers it replaces the main comparison file; all other views keep using the main file. */
+function priorSource(){
+  if(!STATE.prior) return null;
+  const u = STATE.priorUk;
+  if(u && STATE.tables.uk){
+    const lob = currentLobLabel(), basis = STATE.basis, branch = branchLabel(true);
+    if(u.covers.has(priorKey(lob, levelOf(STATE.lobKey), basis, branch, "")) ||
+       u.coversLoose.has(priorKeyLoose(lob, basis, branch, ""))) return u;
+  }
+  return STATE.prior;
+}
+function priorRatios(rowLabel){
+  const p = priorSource();
+  if(!p) return null;
+  return lookupPrior(p, currentLobLabel(), levelOf(STATE.lobKey), STATE.basis, branchLabel(STATE.tables.uk), rowLabel);
 }
 /* difference of the two ratios, as a fraction (so 0.024 = +2.4%) */
 function deltaOf(rowLabel, key, current){
@@ -2695,12 +2712,9 @@ function withDeltas(row){
   return out;
 }
 
-/* ---- read a previously exported ladder workbook ---- */
-async function loadPrior(fileList){
-  const files = Array.from(fileList).filter(function(f){ return /\.(xlsx|xlsm)$/i.test(f.name); });
-  if(!files.length) return;
-  const f = files[0];
-  try {
+/* ---- read a previously exported ladder workbook ----
+   ukOnly keeps the UK-branch rows only (the file holding the Q-1 UK figures as presented) */
+async function readLadder(f, ukOnly){
     const wb = openWorkbook(await f.arrayBuffer());
     const sheetName = wb.sheetNames.filter(function(n){ return normName(n) === "ladder"; })[0] || wb.sheetNames[0];
     const rows = wb.readSheet(sheetName, null, 1) || [];
@@ -2739,6 +2753,7 @@ async function loadPrior(fileList){
 
     const map = new Map(), loose = new Map(), looseSeen = new Map();
     const combos = new Set();
+    const covers = new Set(), coversLoose = new Set();
     const cuts = new Set();
     let lastRow = headRow.__row;
     for(const row of rows) if(row.__row > lastRow) lastRow = row.__row;
@@ -2749,8 +2764,12 @@ async function loadPrior(fileList){
       if(label === undefined || String(label).trim() === "") continue;
       const lob    = fixedLob    !== null ? fixedLob    : row[colOf["LOB"]];
       const basis  = fixedBasis  !== null ? fixedBasis  : row[colOf["BASIS"]];
-      const branch = fixedBranch !== null ? fixedBranch : row[colOf["BRANCH"]];
+      let branch   = fixedBranch !== null ? fixedBranch : row[colOf["BRANCH"]];
       if(lob === undefined || basis === undefined || branch === undefined) continue;
+      if(ukOnly){
+        if(!/^UK(\s+BRANCH)?$/i.test(String(branch).trim())) continue;
+        branch = branchLabel(true);
+      }
       const level = colOf["LEVEL"] && row[colOf["LEVEL"]] !== undefined ? row[colOf["LEVEL"]] : "";
       const vals = {
         gulr:  N(row[colOf["GULR"]]),
@@ -2764,24 +2783,46 @@ async function loadPrior(fileList){
       if(seenLevel === undefined){ looseSeen.set(lk, String(level)); loose.set(lk, vals); }
       else if(seenLevel !== String(level)){ loose.delete(lk); }
       combos.add(String(lob) + "|" + String(level) + "|" + String(basis) + "|" + String(branch));
+      covers.add(priorKey(lob, level, basis, branch, ""));
+      if(!colOf["LEVEL"]) coversLoose.add(priorKeyLoose(lob, basis, branch, ""));
       const m = normLabel(label).match(/^<=(\d{4})$/);
       if(m) cuts.add(+m[1]);
     }
-    if(!map.size) throw new Error("no ladder rows were found below the header.");
+    if(!map.size) throw new Error(ukOnly ? "no UK branch rows were found below the header." : "no ladder rows were found below the header.");
 
-    STATE.prior = {
+    return {
       name: f.name, rows: map, loose: loose, combos: combos.size,
+      covers: covers, coversLoose: coversLoose,
       cutoffs: Array.from(cuts).sort(),
       asOf: readPriorStamp(byRow)
     };
+}
+async function loadPrior(fileList){
+  const files = Array.from(fileList).filter(function(f){ return /\.(xlsx|xlsm)$/i.test(f.name); });
+  if(!files.length) return;
+  try {
+    STATE.prior = await readLadder(files[0], false);
     $("fatal").innerHTML = "";
-    if(STATE.model) recompute(); else renderPriorChip();
   } catch(err){
     STATE.prior = null;
     $("fatal").innerHTML = '<div class="banner bad"><b>Could not read the comparison file.</b><br>' +
       esc(err && err.message ? err.message : String(err)) + "</div>";
-    renderPriorChip();
   }
+  if(STATE.model) recompute(); else renderPriorChip();
+}
+/* the Q-1 UK figures as presented in the UK deck; same ladder layout, UK-branch rows only */
+async function loadPriorUk(fileList){
+  const files = Array.from(fileList).filter(function(f){ return /\.(xlsx|xlsm)$/i.test(f.name); });
+  if(!files.length) return;
+  try {
+    STATE.priorUk = await readLadder(files[0], true);
+    $("fatal").innerHTML = "";
+  } catch(err){
+    STATE.priorUk = null;
+    $("fatal").innerHTML = '<div class="banner bad"><b>Could not read the UK comparison file.</b><br>' +
+      esc(err && err.message ? err.message : String(err)) + "</div>";
+  }
+  if(STATE.model) recompute(); else renderPriorChip();
 }
 function readPriorStamp(byRow){
   const r = byRow.get(2);
@@ -2792,7 +2833,15 @@ function readPriorStamp(byRow){
 }
 function clearPrior(){
   STATE.prior = null;
+  STATE.priorUk = null;
   $("filePrior").value = "";
+  $("filePriorUk").value = "";
+  $("fatal").innerHTML = "";
+  if(STATE.model) recompute(); else renderPriorChip();
+}
+function clearPriorUk(){
+  STATE.priorUk = null;
+  $("filePriorUk").value = "";
   $("fatal").innerHTML = "";
   if(STATE.model) recompute(); else renderPriorChip();
 }
@@ -2800,15 +2849,24 @@ function renderPriorChip(){
   const box = $("priorChip");
   if(!STATE.prior){ box.innerHTML = ""; box.classList.add("hidden"); return; }
   box.classList.remove("hidden");
-  const p = STATE.prior;
-  const cutWarn = (p.cutoffs.length && p.cutoffs.indexOf(STATE.cutoff) < 0)
-    ? ' <span class="warnbit">collapse year in that file is &le;' + p.cutoffs.join(", &le;") + ", current view uses &le;" + STATE.cutoff + "</span>"
+  const p = STATE.prior, u = STATE.priorUk;
+  const plural = function(n){ return n + " combination" + (n === 1 ? "" : "s"); };
+  const cuts = Array.from(new Set(p.cutoffs.concat(u ? u.cutoffs : []))).sort();
+  const cutWarn = (cuts.length && cuts.indexOf(STATE.cutoff) < 0)
+    ? ' <span class="warnbit">collapse year in that file is &le;' + cuts.join(", &le;") + ", current view uses &le;" + STATE.cutoff + "</span>"
     : "";
+  const ukBit = u
+    ? ' <span class="dim">&middot;</span> <span class="priorlabel">UK branch against</span> <b>' + esc(u.name) + "</b>" +
+      ' <span class="dim">&middot; ' + plural(u.combos) + "; other UK views use the main file</span>" +
+      ' <button class="btn tiny" id="btnClearPriorUk">Clear UK</button>'
+    : ' <button class="btn tiny" id="btnPriorUk" title="Compare the UK branch against the Q-1 figures as presented in the UK deck">UK as presented&hellip;</button>';
   box.innerHTML = '<span class="priorlabel">Comparing against</span> <b>' + esc(p.name) + "</b>" +
     (p.asOf ? " <span class=\"dim\">generated " + esc(p.asOf) + "</span>" : "") +
-    ' <span class="dim">&middot; ' + p.combos + " combination" + (p.combos === 1 ? "" : "s") + "</span>" +
-    cutWarn + ' <button class="btn tiny" id="btnClearPrior">Clear</button>';
+    ' <span class="dim">&middot; ' + plural(p.combos) + "</span>" +
+    cutWarn + ukBit + ' <button class="btn tiny" id="btnClearPrior">Clear</button>';
   $("btnClearPrior").addEventListener("click", clearPrior);
+  if(u) $("btnClearPriorUk").addEventListener("click", clearPriorUk);
+  else $("btnPriorUk").addEventListener("click", function(){ $("filePriorUk").click(); });
 }
 
 /* ==========================================================================
@@ -2886,7 +2944,8 @@ const stampToday = function(){ return new Date().toISOString().slice(0, 10); };
 function exportXlsx(){
   const T = STATE.tables;
   const lob = currentLobLabel(), branch = branchLabel(T.uk), stamp = stampToday();
-  const subtitle = lob + "  ·  " + STATE.basis + "  ·  " + branch + "  ·  values in EUR m  ·  generated " + stamp;
+  const subtitle = lob + "  ·  " + STATE.basis + "  ·  " + branch + "  ·  values in EUR m  ·  generated " + stamp +
+                   (STATE.prior ? "  ·  deltas vs " + priorSource().name : "");
   const cols = ladderCols();
 
   const ladder = xlSheet({
@@ -2974,7 +3033,8 @@ async function exportAllXlsx(){
     title: "Reserve netting ladder — all combinations",
     subtitle: combos.length + " combinations  ·  values in EUR m  ·  UWY collapsed up to " + STATE.cutoff +
               "  ·  generated " + stamp +
-              (STATE.prior ? "  ·  deltas vs " + STATE.prior.name : ""),
+              (STATE.prior ? "  ·  deltas vs " + STATE.prior.name : "") +
+              (STATE.priorUk ? "  ·  UK branch vs " + STATE.priorUk.name + " where it has the combination" : ""),
     keyCols: ["LoB","Level","Basis","Branch","UWY"],
     bands: ladderBands(), cols: cols, data: data
   });
@@ -3008,6 +3068,7 @@ async function exportAllXlsx(){
   $("btnExportAll").addEventListener("click", exportAllXlsx);
   $("btnPrior").addEventListener("click", function(){ $("filePrior").click(); });
   $("filePrior").addEventListener("change", function(e){ if(e.target.files.length) loadPrior(e.target.files); });
+  $("filePriorUk").addEventListener("change", function(e){ if(e.target.files.length) loadPriorUk(e.target.files); });
   $("btnTheme").addEventListener("click", function(){
     const cur = document.documentElement.getAttribute("data-theme");
     const dark = cur ? cur === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
